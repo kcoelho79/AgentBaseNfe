@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentNFe - Chat Local</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #e5ddd5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h2 {
+            font-size: 18px;
+        }
+        
+        .messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #e5ddd5;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message.bot {
+            justify-content: flex-start;
+        }
+        
+        .bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .message.user .bubble {
+            background: #dcf8c6;
+        }
+        
+        .message.bot .bubble {
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background: #f0f0f0;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        select, input, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        select {
+            flex: 0 0 200px;
+        }
+        
+        input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        button {
+            background: #075e54;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #064d44;
+        }
+        
+        .clear-btn {
+            background: #d32f2f;
+            font-size: 12px;
+            padding: 8px 15px;
+        }
+        
+        .clear-btn:hover {
+            background: #b71c1c;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .typing {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .typing span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        @media (max-width: 600px) {
+            select { flex: 0 0 100%; }
+            input { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>💬 AgentNFe - Chat Local</h2>
+            <button class="clear-btn" onclick="clearState()">🗑️ Limpar Estado</button>
+        </div>
+        
+        <div class="messages" id="messages"></div>
+        
+        <div class="input-area">
+            <select id="telefone">
+                <option value="">📱 Selecione o telefone</option>
+                {% for nome, tel in telefones.items %}
+                <option value="{{ tel }}">{{ nome }} ({{ tel }})</option>
+                {% endfor %}
+            </select>
+            
+            <input 
+                type="text" 
+                id="mensagem" 
+                placeholder="Digite sua mensagem..."
+                onkeypress="handleEnter(event)"
+            >
+            
+            <button onclick="sendMessage()">📤 Enviar</button>
+        </div>
+    </div>
+    
+    <script>
+        function addMessage(text, isUser) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.textContent = text;
+            
+            messageDiv.appendChild(bubble);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function showTyping() {
+            const messagesDiv = document.getElementById('messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = 'typing-indicator';
+            
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'typing';
+            typingBubble.innerHTML = '<span></span><span></span><span></span>';
+            
+            typingDiv.appendChild(typingBubble);
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function hideTyping() {
+            const typing = document.getElementById('typing-indicator');
+            if (typing) {
+                typing.remove();
+            }
+        }
+        
+        async function sendMessage() {
+            const telefone = document.getElementById('telefone').value;
+            const mensagem = document.getElementById('mensagem').value;
+            
+            if (!telefone) {
+                alert('⚠️ Selecione um telefone');
+                return;
+            }
+            
+            if (!mensagem.trim()) {
+                return;
+            }
+            
+            // Adicionar mensagem do usuário
+            addMessage(mensagem, true);
+            
+            // Limpar input
+            document.getElementById('mensagem').value = '';
+            
+            // Mostrar indicador de digitação
+            showTyping();
+            
+            try {
+                const response = await fetch('/send/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ telefone, mensagem })
+                });
+                
+                const data = await response.json();
+                
+                // Simular delay de digitação
+                setTimeout(() => {
+                    hideTyping();
+                    
+                    if (data.status === 'success') {
+                        addMessage(data.resposta, false);
+                    } else {
+                        addMessage(`❌ Erro: ${data.error}`, false);
+                    }
+                }, 800);
+                
+            } catch (error) {
+                hideTyping();
+                console.error('Erro completo:', error);
+                addMessage(`❌ Erro de conexão: ${error.message}`, false);
+            }
+        }
+        
+        async function clearState() {
+            const telefone = document.getElementById('telefone').value;
+            
+            if (!telefone) {
+                alert('⚠️ Selecione um telefone primeiro');
+                return;
+            }
+            
+            if (!confirm('🗑️ Limpar estado desta conversa?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/clear/${telefone}/`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('messages').innerHTML = '';
+                    addMessage('✅ Estado limpo. Nova conversa iniciada.', false);
+                }
+            } catch (error) {
+                alert('❌ Erro ao limpar estado');
+            }
+        }
+        
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Mensagem inicial
+        window.onload = () => {
+            addMessage('👋 Olá! Selecione um telefone e comece a testar o AgentNFe.\n\n💡 Experimente: "Emitir nota de 1500 reais para Empresa XYZ"', false);
+        };
+    </script>
+</body>
+</html>

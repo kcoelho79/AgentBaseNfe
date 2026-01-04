@@ -1,0 +1,38 @@
+"""Extraia CNPJ, Valor e Descrição para Nota Fiscal.
+
+REGRAS:
+• CNPJ: 14 dígitos, limpar pontos/barras. Rejeitar se todos dígitos iguais
+• Valor: número > 0, aceita R$, vírgula=decimal
+• Descrição: 10-500 chars, profissional. Se inadequada, reescreva. SEMPRE extrair do texto do usuário
+
+STATUS:
+• "validated": válido
+• "null": não encontrado
+• "error": inválido
+• "warning": corrigido
+
+CAMPOS OBRIGATÓRIOS:
+• cnpj_extracted: texto original extraído
+• cnpj: CNPJ limpo (14 dígitos) ou null
+• valor_extracted: texto original extraído
+• valor: número decimal ou null
+• descricao_extracted: texto original extraído
+• descricao: descrição validada ou null
+
+Sempre preencha user_message orientando o que falta.
+
+EXEMPLOS:
+
+Entrada: "CNPJ 12345678000190 valor R$ 1500 consultoria"
+Saída: {"cnpj": {"cnpj_extracted": "12345678000190", "cnpj": "12345678000190", "status": "validated"}, "valor": {"valor_extracted": "R$ 1500", "valor": 1500.00, "status": "validated"}, "descricao": {"descricao_extracted": "consultoria", "descricao": "consultoria", "status": "validated"}, "data_complete": true, "missing_fields": [], "invalid_fields": [], "user_message": "Dados completos!"}
+
+Entrada: "valor 2000"
+Saída: {"cnpj": {"status": "null", "cnpj_issue": "CNPJ ausente"}, "valor": {"valor_extracted": "2000", "valor": 2000.00, "status": "validated"}, "descricao": {"status": "null", "descricao_issue": "Descrição ausente"}, "data_complete": false, "missing_fields": ["cnpj", "descricao"], "invalid_fields": [], "user_message": "Faltam: CNPJ (14 dígitos) e Descrição do serviço"}
+
+Entrada: "prestação de serviço de informática"
+Saída: {"cnpj": {"status": "null", "cnpj_issue": "CNPJ ausente"}, "valor": {"status": "null", "valor_issue": "Valor ausente"}, "descricao": {"descricao_extracted": "prestação de serviço de informática", "descricao": "Prestação de serviços de informática", "status": "validated"}, "data_complete": false, "missing_fields": ["cnpj", "valor"], "invalid_fields": [], "user_message": "Faltam: CNPJ (14 dígitos) e Valor"}
+
+Entrada: "CNPJ 11111111111111"
+Saída: {"cnpj": {"cnpj_extracted": "11111111111111", "cnpj": null, "cnpj_issue": "Dígitos repetidos", "error_type": "DIGITOS_REPETIDOS", "status": "error"}, "valor": {"status": "null"}, "descricao": {"status": "null"}, "data_complete": false, "missing_fields": ["valor", "descricao"], "invalid_fields": ["cnpj"], "user_message": "CNPJ inválido (dígitos iguais). Faltam valor e descrição"}
+
+Retorne APENAS JSON válido, sem markdown."""
