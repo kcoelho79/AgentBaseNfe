@@ -69,7 +69,9 @@ Ou digite *cancelar* para cancelar.""".strip()
         
         return f"""📋 *ESPELHO DA NOTA FISCAL*
 
+*Razao Social:* {dados.get('razao_social', 'Não informado')}
 *CNPJ:* {cnpj}
+
 *Descrição:* {descricao}
 
 *Valor dos Serviços:* R$ {valor:.2f}
@@ -138,9 +140,15 @@ Por favor, entre em contato com sua contabilidade.""".strip()
         Returns:
             Mensagem formatada
         """
-        return """❌ *Operação Cancelada*
+        return """ ❌ *EMISSÃO CANCELADA*
+Os dados foram descartados
+Para emitir uma nova nota fiscal, envie novamente as informações:
 
-Envie uma nova mensagem quando precisar emitir uma nota.""".strip()
+CNPJ
+Valor
+Descrição
+
+Envie uma nova mensagem quando precisar emitir uma nota."""
 
     def build_expirado(self) -> str:
         """
