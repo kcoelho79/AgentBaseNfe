@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, List
 from openai import OpenAI
 from django.conf import settings
 from django.core.cache import cache
+import time 
 
 from apps.core.models import DadosNFSe
 
@@ -70,6 +71,9 @@ class AIExtractor:
 
         
         try:
+            # INICIAR MEDIÇÂO DE TEMPO
+            tempo_inicio = time.time()
+
             # Usando Structured Output da openai OBS: Versão Beta
             response = self.client.chat.completions.parse(
                 model=self.model,
@@ -81,6 +85,11 @@ class AIExtractor:
                 max_tokens=4096,
                 temperature=0.1,
             )
+
+            # FINALIZAR MEDICAO DE TEMPO
+            tempo_total = time.time() - tempo_inicio
+            logger.info(f"\n\n⏱️ Tempo de processamento OpenAI (Structured Output): {tempo_total:.3f}s ({tempo_total*1000:.0f}ms)\n\n")
+
 
             #verificar se a IA recusou responder
             if response.choices[0].message.refusal:
