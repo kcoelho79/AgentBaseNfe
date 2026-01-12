@@ -32,7 +32,8 @@ class AIExtractor:
 
         # carregar prompt do arquivo
         #prompt_file = 'extractor_system_reduzido.txt'
-        prompt_file = 'prompt_validacao_extracao.txt'
+        # prompt_file = 'prompt_validacao_extracao.txt'
+        prompt_file = 'prompt_conversacional.txt'
         prompt_path = Path(__file__).parent / 'prompts' / prompt_file
         self.SYSTEM_PROMPT = prompt_path.read_text(encoding='utf-8')
 
@@ -128,36 +129,53 @@ class AIExtractor:
 def normalize_context(redis_state: Dict[str, Any]) -> str:
     """
     Normaliza o estado técnico (JSON) em um contexto textual neutro,
-    adequado para ser enviado ao LLM sem induzir tom robótico.
+    mostrando os VALORES validados para evitar que a IA peça novamente.
     """
     if not redis_state:
         return ""
 
     lines = []
-
+    
     cnpj = redis_state.get("cnpj", {})
-    valor = redis_state.get("valor_formatted", {})
+    valor = redis_state.get("valor", {})
     descricao = redis_state.get("descricao", {})
+    logger.info(f"Normalizando contexto do estado")
 
-    # CNPJ
+    # CNPJ - mostrar o valor se validado
     if cnpj.get("status") == "validated":
-        lines.append("O CNPJ já foi informado.")
+        cnpj_formatado = cnpj.get("cnpj", "")
+        lines.append(f"CNPJ já informado: {cnpj_formatado}")
+    elif cnpj.get("status") == "error":
+        erro = cnpj.get("cnpj_issue", "erro desconhecido")
+        lines.append(f"CNPJ informado está com erro: {erro}")
     else:
-        lines.append("O CNPJ ainda não foi informado.")
+        lines.append("CNPJ ainda não foi informado.")
 
-    # Valor
+    # Valor - mostrar o valor se validado
     if valor.get("status") == "validated":
-        lines.append("O valor do serviço já foi informado.")
+        valor_formatado = valor.get("valor_formatted", "")
+        lines.append(f"Valor já informado: {valor_formatado}")
+    elif valor.get("status") == "error":
+        erro = valor.get("valor_issue", "erro desconhecido")
+        lines.append(f"Valor informado está com erro: {erro}")
     else:
-        lines.append("O valor do serviço ainda não foi informado.")
+        lines.append("Valor ainda não foi informado.")
 
-    # Descrição
+    # Descrição - mostrar a descrição se validada
     if descricao.get("status") == "validated":
-        lines.append("A descrição do serviço já foi informada.")
+        desc_texto = descricao.get("descricao", "")
+        # Limitar para não ficar muito longo
+        desc_preview = desc_texto[:80] + "..." if len(desc_texto) > 80 else desc_texto
+        lines.append(f"Descrição já informada: {desc_preview}")
     elif descricao.get("status") == "warning":
-        lines.append("A descrição do serviço ainda precisa ser confirmada.")
+        desc_texto = descricao.get("descricao", "")
+        desc_preview = desc_texto[:80] + "..." if len(desc_texto) > 80 else desc_texto
+        lines.append(f"Descrição precisa ser confirmada: {desc_preview}")
+    elif descricao.get("status") == "error":
+        erro = descricao.get("descricao_issue", "erro desconhecido")
+        lines.append(f"Descrição informada está com erro: {erro}")
     else:
-        lines.append("A descrição do serviço ainda não foi informada.")
+        lines.append("Descrição ainda não foi informada.")
 
     context_text = "CONTEXTO ATUAL:\n"
     for line in lines:

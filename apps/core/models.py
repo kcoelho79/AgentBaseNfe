@@ -219,14 +219,14 @@ class DadosNFSe(BaseModel):
             self.descricao.status == 'validated' and
             len(self.invalid_fields) == 0
         )
-        
-        # Monta mensagem para usuário
-        if self.invalid_fields:
-            self.user_message = "❌ Dados inválidos:\n" + "\n".join(f"• {field}" for field in self.invalid_fields)
-        elif self.missing_fields:
-            self.user_message = "⚠️ Ainda faltam:\n" + "\n".join(f"• {field}" for field in self.missing_fields)
-        else:
-            self.user_message = "✅ Todos os dados foram coletados!"
+        # deixar a IA montar o prompt
+        # # Monta mensagem para usuário
+        # if self.invalid_fields:
+        #     self.user_message = "❌ Dados inválidos:\n" + "\n".join(f"• {field}" for field in self.invalid_fields)
+        # elif self.missing_fields:
+        #     self.user_message = "⚠️ Ainda falta:\n" + "\n".join(f"• {field}" for field in self.missing_fields)
+        # else:
+        #     self.user_message = "✅ Todos os dados foram coletados!"
         
         return self
 
