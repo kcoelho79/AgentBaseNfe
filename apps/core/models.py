@@ -271,3 +271,49 @@ class DadosNFSe(BaseModel):
         if not data:
             return cls()
         return cls.model_validate(data)
+    
+    # Em apps/core/models.py - adicionar no final da classe DadosNFSe
+
+    def to_context(self) -> str:
+        """
+        Converte dados para contexto textual, para enviar como contexto para a IA, via prompt user
+        Mostra valores validados para evitar pedidos repetidos.
+        """
+        if not any([
+            self.cnpj.status != 'null',
+            self.valor.status != 'null', 
+            self.descricao.status != 'null'
+        ]):
+            return ""
+        
+        lines = []
+        
+        # CNPJ
+        if self.cnpj.status == "validated":
+            lines.append(f"CNPJ já informado: {self.cnpj.cnpj}")
+        elif self.cnpj.status == "error":
+            lines.append(f"CNPJ informado está com erro: {self.cnpj.cnpj_issue}")
+        else:
+            lines.append("CNPJ ainda não foi informado.")
+        
+        # Valor
+        if self.valor.status == "validated":
+            lines.append(f"Valor já informado: {self.valor.valor_formatted}")
+        elif self.valor.status == "error":
+            lines.append(f"Valor informado está com erro: {self.valor.valor_issue}")
+        else:
+            lines.append("Valor ainda não foi informado.")
+        
+        # Descrição
+        if self.descricao.status == "validated":
+            desc_preview = (self.descricao.descricao[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
+            lines.append(f"Descrição já informada: {desc_preview}")
+        elif self.descricao.status == "warning":
+            desc_preview = (self.descricao.descricao[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
+            lines.append(f"Descrição precisa ser confirmada: {desc_preview}")
+        elif self.descricao.status == "error":
+            lines.append(f"Descrição informada está com erro: {self.descricao.descricao_issue}")
+        else:
+            lines.append("Descrição ainda não foi informada.")
+        
+        return "CONTEXTO ATUAL:\n" + "\n".join(f"- {line}" for line in lines)

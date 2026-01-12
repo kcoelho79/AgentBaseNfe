@@ -51,24 +51,18 @@ class AIExtractor:
     def parse(
         self, 
         user_message: str, 
-        redis_state: Optional[Dict[str, Any]] = None
+        dados_anterior: Optional[DadosNFSe] = None
     ) -> DadosNFSe:
 
         logger.info("Iniciando extração de dados com AIExtractor")
         logger.info(f"Mensagem do usuário para extração: {user_message}")
 
         # Normaliza estado anterior (se existir)
-        context_text = normalize_context(redis_state) if redis_state else ""
+        context_text = dados_anterior.to_context() if dados_anterior else ""
 
 
-        if context_text:
-            user_prompt = (
-                f"{context_text}\n\n"
-                f"MENSAGEM DO USUÁRIO:\n"
-                f"{user_message}"
-            )
-        else:
-            user_prompt = user_message
+        user_prompt = f"{context_text}\n\nMENSAGEM DO USUÁRIO:\n{user_message}" if context_text else user_message
+
 
         logger.info(f"\n\nPrompt completo para extração:\n{user_prompt}\n\n")
 
@@ -103,7 +97,7 @@ class AIExtractor:
             return dados
 
         except Exception as e:
-            logger.exception("Erro ao chamar OpenAI Structured Outputs")
+            logger.exception("Erro ao chamar OpenAI ")
             return DadosNFSe(
                 user_message="Erro ao processar sua mensagem. Tente novamente em instantes."
             )
@@ -126,59 +120,3 @@ class AIExtractor:
         
         return self.parse(text, state)
 
-def normalize_context(redis_state: Dict[str, Any]) -> str:
-    """
-    Normaliza o estado técnico (JSON) em um contexto textual neutro,
-    mostrando os VALORES validados para evitar que a IA peça novamente.
-    """
-    if not redis_state:
-        return ""
-
-    lines = []
-    
-    cnpj = redis_state.get("cnpj", {})
-    valor = redis_state.get("valor", {})
-    descricao = redis_state.get("descricao", {})
-    logger.info(f"Normalizando contexto do estado")
-
-    # CNPJ - mostrar o valor se validado
-    if cnpj.get("status") == "validated":
-        cnpj_formatado = cnpj.get("cnpj", "")
-        lines.append(f"CNPJ já informado: {cnpj_formatado}")
-    elif cnpj.get("status") == "error":
-        erro = cnpj.get("cnpj_issue", "erro desconhecido")
-        lines.append(f"CNPJ informado está com erro: {erro}")
-    else:
-        lines.append("CNPJ ainda não foi informado.")
-
-    # Valor - mostrar o valor se validado
-    if valor.get("status") == "validated":
-        valor_formatado = valor.get("valor_formatted", "")
-        lines.append(f"Valor já informado: {valor_formatado}")
-    elif valor.get("status") == "error":
-        erro = valor.get("valor_issue", "erro desconhecido")
-        lines.append(f"Valor informado está com erro: {erro}")
-    else:
-        lines.append("Valor ainda não foi informado.")
-
-    # Descrição - mostrar a descrição se validada
-    if descricao.get("status") == "validated":
-        desc_texto = descricao.get("descricao", "")
-        # Limitar para não ficar muito longo
-        desc_preview = desc_texto[:80] + "..." if len(desc_texto) > 80 else desc_texto
-        lines.append(f"Descrição já informada: {desc_preview}")
-    elif descricao.get("status") == "warning":
-        desc_texto = descricao.get("descricao", "")
-        desc_preview = desc_texto[:80] + "..." if len(desc_texto) > 80 else desc_texto
-        lines.append(f"Descrição precisa ser confirmada: {desc_preview}")
-    elif descricao.get("status") == "error":
-        erro = descricao.get("descricao_issue", "erro desconhecido")
-        lines.append(f"Descrição informada está com erro: {erro}")
-    else:
-        lines.append("Descrição ainda não foi informada.")
-
-    context_text = "CONTEXTO ATUAL:\n"
-    for line in lines:
-        context_text += f"- {line}\n"
-
-    return context_text.strip()

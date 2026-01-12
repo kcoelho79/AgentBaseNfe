@@ -93,7 +93,7 @@ class MessageProcessor:
         logger.info("Extraindo dados com IA", extra={'telefone': telefone})
         dados_extraidos = self.extractor.parse(
             mensagem,
-            dados_anterior.to_dict() if dados_anterior else None
+            dados_anterior if dados_anterior else None
         )
         
         # 5. MESCLAR com dados anteriores
