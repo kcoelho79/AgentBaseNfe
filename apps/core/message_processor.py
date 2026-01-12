@@ -186,6 +186,8 @@ class MessageProcessor:
             
             # Enviar para gateway
             # TODO: self._enviar_para_gateway(dados, state['protocolo_id'])
+            self.state_manager.clear_state(telefone)
+
             
             return self.response_builder.build_confirmacao_processando(state['protocolo_id'])
         
