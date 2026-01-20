@@ -131,12 +131,14 @@ class MessageProcessor:
 
             #limpar sessão após processamento            
             self.session_manager.delete_session(session.telefone)
-            
+            session.add_system_message(f"{datetime.now()} usuario nota confirmada.")
             return self.response_builder.build_confirmacao_processando(session.sessao_id)
         
         # CANCELOU
         elif msg_normalizada in ['não', 'nao', 'n', 'cancelar', 'cancela']:
             logger.info("Cancelado pelo usuário", extra={'telefone': session.telefone})
+            session.update_estado('cancelado_usuario')
+            session.add_system_message(f"{datetime.now()} Solicitação cancelada pelo usuário.")
             self.session_manager.delete_session(session.telefone)
             return self.response_builder.build_cancelado()
         
