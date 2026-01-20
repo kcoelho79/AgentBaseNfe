@@ -62,9 +62,9 @@ def send_message(request):
 def clear_state(request, telefone):
     """Limpa estado de uma conversa."""
     try:
-        from apps.core.state_manager import StateManager
-        sm = StateManager()
-        sm.clear_state(telefone)
+        from apps.core.session_manager import SessionManager
+        sm = SessionManager()
+        sm.delete_session(telefone)
         
         return JsonResponse({
             'status': 'success',

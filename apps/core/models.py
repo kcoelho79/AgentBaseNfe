@@ -1,8 +1,10 @@
 from django.db import models
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from decimal import Decimal
+from datetime import datetime
+from uuid import uuid4
 
 import logging
 
@@ -317,3 +319,144 @@ class DadosNFSe(BaseModel):
             lines.append("Descrição ainda não foi informada.")
         
         return "CONTEXTO ATUAL:\n" + "\n".join(f"- {line}" for line in lines)
+    
+## model session com pydantic v2
+
+class Message(BaseModel):
+    """Representa uma mensagem no histórico da conversa."""
+    role: Literal['user', 'assistant', 'system']
+    content: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+    
+class Session(BaseModel):
+    """
+    Sessão de conversa para emissão de NFSe.
+    
+    Armazena estado completo da interação incluindo:
+    - Dados da nota em construção
+    - Estado da máquina de estados
+    - Histórico de mensagens
+    - Métricas de uso
+    """
+    
+    # Identificação
+    sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%y%m%d%H%M')}-{uuid4().hex[:5]}")
+    telefone: str
+    
+    # Estado da máquina
+    estado: Literal[
+        'coleta',
+        'dados_incompletos',
+        'dados_completos',
+        'aguardando_confirmacao',
+        'processando',
+        'aprovado',
+        'rejeitado',
+        'erro',
+        'cancelado_usuario',
+        'expirado'
+    ] = 'coleta'
+    
+    # Dados da nota
+    invoice_data: DadosNFSe = Field(default_factory=DadosNFSe)
+    
+    # Métricas
+    interaction_count: int = 0  # Total de interações (user + bot)
+    bot_message_count: int = 0  # Mensagens enviadas pelo bot
+    ai_calls_count: int = 0  # Chamadas à API OpenAI
+    
+    # Histórico de conversa
+    context: List[Message] = Field(default_factory=list)
+    
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    # TTL em segundos (padrão: 1 hora)
+    ttl: int = 3600
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+    
+    # ==================== MÉTODOS DE CONVENIÊNCIA ====================
+    
+    def add_user_message(self, content: str) -> None:
+        """Adiciona mensagem do usuário ao contexto."""
+        self.context.append(Message(role='user', content=content))
+        self.interaction_count += 1
+        self.updated_at = datetime.now()
+    
+    def add_bot_message(self, content: str) -> None:
+        """Adiciona mensagem do bot ao contexto."""
+        self.context.append(Message(role='assistant', content=content))
+        self.bot_message_count += 1
+        self.interaction_count += 1
+        self.updated_at = datetime.now()
+    
+    def add_system_message(self, content: str) -> None:
+        """Adiciona mensagem do sistema ao contexto."""
+        self.context.append(Message(role='system', content=content))
+        self.updated_at = datetime.now()
+    
+    def increment_ai_calls(self) -> None:
+        """Incrementa contador de chamadas à IA."""
+        self.ai_calls_count += 1
+        self.updated_at = datetime.now()
+    
+    def update_estado(self, novo_estado: str) -> None:
+        """Atualiza estado da sessão."""
+        self.estado = novo_estado
+        self.updated_at = datetime.now()
+    
+    def update_invoice_data(self, dados: DadosNFSe) -> None:
+        """Atualiza dados da nota."""
+        self.invoice_data = dados
+        self.updated_at = datetime.now()
+    
+    def get_conversation_history(self, limit: Optional[int] = None) -> List[Message]:
+        """
+        Retorna histórico de conversa.
+        
+        Args:
+            limit: Limita quantidade de mensagens retornadas (mais recentes)
+        """
+        if limit:
+            return self.context[-limit:]
+        return self.context
+    
+    def get_age_seconds(self) -> float:
+        """Retorna idade da sessão em segundos."""
+        return (datetime.now() - self.created_at).total_seconds()
+    
+    def is_expired(self) -> bool:
+        """Verifica se sessão expirou."""
+        return self.get_age_seconds() > self.ttl
+    
+    # ==================== SERIALIZAÇÃO ====================
+    
+    def to_dict(self) -> dict:
+        """Serializa para salvar no Redis."""
+        return self.model_dump(mode='json')
+    
+    def to_json(self) -> str:
+        """Serializa para JSON string."""
+        return self.model_dump_json()
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Session':
+        """Deserializa do Redis."""
+        if not data:
+            raise ValueError("Dados da sessão não podem ser vazios")
+        return cls.model_validate(data)
+    
+    @classmethod
+    def from_json(cls, json_str: str) -> 'Session':
+        """Deserializa de JSON string."""
+        return cls.model_validate_json(json_str)

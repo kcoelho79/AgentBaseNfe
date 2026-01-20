@@ -1,6 +1,8 @@
 .venv/
 db.sqlite3
 .env
+*.KLEBER*
+PROXIMO*
 
 # pasta projeto Python
 etc/
