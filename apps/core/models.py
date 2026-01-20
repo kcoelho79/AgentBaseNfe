@@ -281,6 +281,9 @@ class DadosNFSe(BaseModel):
         Converte dados para contexto textual, para enviar como contexto para a IA, via prompt user
         Mostra valores validados para evitar pedidos repetidos.
         """
+
+        logger.info("Convertendo dados para contexto textual")
+        
         if not any([
             self.cnpj.status != 'null',
             self.valor.status != 'null', 

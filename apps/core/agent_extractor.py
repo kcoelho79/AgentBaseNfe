@@ -55,8 +55,8 @@ class AIExtractor:
     ) -> DadosNFSe:
 
         logger.info("Iniciando extração de dados com AIExtractor")
-        logger.info(f"Mensagem do usuário para extração: {user_message}")
 
+        logger.info(f"Mensagem do usuário para extração: {user_message}")
         # Normaliza estado anterior (se existir)
         context_text = dados_anterior.to_context() if dados_anterior else ""
 
@@ -75,7 +75,7 @@ class AIExtractor:
                     {"role": "system", "content": self.SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
-                response_format=DadosNFSe,
+                response_format=DadosNFSe,  
                 max_tokens=1024,
                 temperature=0.4,
             )

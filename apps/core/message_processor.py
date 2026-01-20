@@ -85,7 +85,7 @@ class MessageProcessor:
 
         dados_extraidos = self.extractor.parse(
             mensagem,
-            session.invoice_data if session.invoice_data.is_valid() else None
+            session.invoice_data if session.invoice_data else None
         )
 
         # Incrementar contador de chamadas de IA
