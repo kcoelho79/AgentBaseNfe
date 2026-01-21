@@ -9,6 +9,27 @@ from apps.core.models import Session, DadosNFSe
 logger = logging.getLogger(__name__)
 
 
+def _persist_expired_session(session: Session) -> None:
+    """
+    Persiste sessão expirada no banco de dados.
+
+    Importação lazy para evitar imports circulares.
+    """
+    try:
+        from apps.core.session_persistence import SessionPersistence, SnapshotReason
+        session.update_estado('expirado')
+        SessionPersistence.save_session(session, SnapshotReason.EXPIRED)
+        logger.info(
+            f"Sessão expirada persistida: {session.sessao_id}",
+            extra={'telefone': session.telefone}
+        )
+    except Exception as e:
+        logger.error(
+            f"Erro ao persistir sessão expirada: {e}",
+            extra={'telefone': session.telefone}
+        )
+
+
 class SessionManager:
     """
     Gerencia sessões de conversa no Redis.
@@ -129,15 +150,17 @@ class SessionManager:
             Sessão existente ou nova
         """
         session = self.get_session(telefone)
-        
+
         if session:
             # Verificar se expirou
             if session.is_expired():
                 logger.warning('Sessão expirada, criando nova', extra={'telefone': telefone})
+                # Persistir sessão expirada antes de deletar
+                _persist_expired_session(session)
                 self.delete_session(telefone)
                 return self.create_session(telefone, ttl)
             return session
-        
+
         return self.create_session(telefone, ttl)
 
     def get_ttl(self, telefone: str) -> int:

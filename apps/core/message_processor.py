@@ -7,6 +7,7 @@ from apps.core.reponse_builder import ResponseBuilder
 from apps.core.agent_extractor import AIExtractor
 #from apps.core.state_manager import StateManager
 from apps.core.session_manager import SessionManager
+from apps.core.session_persistence import SessionPersistence, SnapshotReason
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,8 @@ class MessageProcessor:
         if dados_finais.data_complete:
             logger.info("Dados completos - exibindo espelho", extra={'telefone': session.telefone})
             session.update_estado('aguardando_confirmacao')
+            # Persistir sessão no banco quando dados estão completos
+            SessionPersistence.save_if_complete(session)
             return self.response_builder.build_espelho(dados_finais.to_dict())
         else:
             session.update_estado('dados_incompletos')
@@ -128,10 +131,13 @@ class MessageProcessor:
         if msg_normalizada in ['sim', 's', 'ok', 'confirmar', 'confirmo']:
             logger.info("Confirmado - processando emissão", extra={'telefone': session.telefone})
             session.update_estado('processando')
-
-            #limpar sessão após processamento            
-            self.session_manager.delete_session(session.telefone)
             session.add_system_message(f"{datetime.now()} usuario nota confirmada.")
+
+            # Persistir sessão confirmada no banco
+            SessionPersistence.save_session(session, SnapshotReason.CONFIRMED)
+
+            #limpar sessão após processamento
+            self.session_manager.delete_session(session.telefone)
             return self.response_builder.build_confirmacao_processando(session.sessao_id)
         
         # CANCELOU
@@ -139,6 +145,10 @@ class MessageProcessor:
             logger.info("Cancelado pelo usuário", extra={'telefone': session.telefone})
             session.update_estado('cancelado_usuario')
             session.add_system_message(f"{datetime.now()} Solicitação cancelada pelo usuário.")
+
+            # Persistir sessão cancelada no banco
+            SessionPersistence.save_session(session, SnapshotReason.CANCELLED)
+
             self.session_manager.delete_session(session.telefone)
             return self.response_builder.build_cancelado()
         
