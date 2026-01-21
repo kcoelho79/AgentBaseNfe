@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | AgentNFe Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">AgentNFe Admin</a></h1>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+/* Fix para o color scheme toggle que aparece como quadrados pretos */
+.theme-toggle {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+}
+.theme-toggle button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--header-link-color);
+}
+.theme-toggle button:hover {
+    background: rgba(255,255,255,0.1);
+}
+/* Corrigir inputs que aparecem como quadrados */
+.theme-toggle input[type="radio"],
+.theme-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+/* Garantir que os icones SVG aparecem */
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+</style>
+{% endblock %}

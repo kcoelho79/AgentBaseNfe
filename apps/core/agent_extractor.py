@@ -93,6 +93,7 @@ class AIExtractor:
 
             dados = response.choices[0].message.parsed
             logger.info(f"Dados extraídos com sucesso. Completo: {dados.data_complete}")
+            logger.info(f"user_message da IA: '{dados.user_message}'")
 
             return dados
 

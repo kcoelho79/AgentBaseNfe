@@ -114,19 +114,27 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
         'telefone',
         'estado',
         'cnpj_status',
+        'cnpj_extracted',
         'cnpj',
         'cnpj_razao_social',
         'cnpj_issue',
+        'cnpj_error_type',
         'valor_status',
+        'valor_extracted',
         'valor',
         'valor_formatted',
         'valor_issue',
+        'valor_error_type',
         'descricao_status',
+        'descricao_extracted',
         'descricao',
         'descricao_issue',
+        'descricao_error_type',
         'data_complete',
         'missing_fields',
         'invalid_fields',
+        'user_message',
+        'ttl',
         'interaction_count',
         'bot_message_count',
         'ai_calls_count',
@@ -142,19 +150,19 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
     # Organização dos campos no formulário de detalhe
     fieldsets = (
         ('Identificação', {
-            'fields': ('sessao_id', 'telefone', 'estado', 'snapshot_reason')
+            'fields': ('sessao_id', 'telefone', 'estado', 'snapshot_reason', 'ttl')
         }),
         ('Dados do CNPJ', {
-            'fields': ('cnpj_status', 'cnpj', 'cnpj_razao_social', 'cnpj_issue')
+            'fields': ('cnpj_status', 'cnpj_extracted', 'cnpj', 'cnpj_razao_social', 'cnpj_issue', 'cnpj_error_type')
         }),
         ('Dados do Valor', {
-            'fields': ('valor_status', 'valor', 'valor_formatted', 'valor_issue')
+            'fields': ('valor_status', 'valor_extracted', 'valor', 'valor_formatted', 'valor_issue', 'valor_error_type')
         }),
         ('Dados da Descrição', {
-            'fields': ('descricao_status', 'descricao', 'descricao_issue')
+            'fields': ('descricao_status', 'descricao_extracted', 'descricao', 'descricao_issue', 'descricao_error_type')
         }),
         ('Status de Completude', {
-            'fields': ('data_complete', 'missing_fields', 'invalid_fields')
+            'fields': ('data_complete', 'missing_fields', 'invalid_fields', 'user_message')
         }),
         ('Métricas', {
             'fields': ('interaction_count', 'bot_message_count', 'ai_calls_count')

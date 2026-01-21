@@ -30,8 +30,13 @@ class ResponseBuilder:
         Returns:
             Mensagem formatada
         """
-        
-        return user_message.strip()
+
+        if user_message and user_message.strip():
+            return user_message.strip()
+
+        # Fallback se user_message estiver vazio
+        logger.warning("user_message vazio - usando fallback")
+        return "Para emitir a nota fiscal, preciso de algumas informações: CNPJ, valor e descrição do serviço."
 
     def build_validacao_erro(self, erros: list) -> str:
         """

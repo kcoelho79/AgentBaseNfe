@@ -1,39 +1,28 @@
-# apps/core/session_manager.py (renomeado de state_manager.py)
+# apps/core/session_manager.py
+"""
+Session Manager - SQLite implementation.
 
-import json
+Manages conversation sessions using Django ORM with SessionSnapshot model.
+This replaces the previous Redis-based implementation for simplicity.
+"""
+
 import logging
 from typing import Optional
-from django.core.cache import cache
-from apps.core.models import Session, DadosNFSe
+from django.db import transaction
+from apps.core.models import Session
+from apps.core.db_models import SessionSnapshot, SessionMessage
 
 logger = logging.getLogger(__name__)
 
 
-def _persist_expired_session(session: Session) -> None:
-    """
-    Persiste sessão expirada no banco de dados.
-
-    Importação lazy para evitar imports circulares.
-    """
-    try:
-        from apps.core.session_persistence import SessionPersistence, SnapshotReason
-        session.update_estado('expirado')
-        SessionPersistence.save_session(session, SnapshotReason.EXPIRED)
-        logger.info(
-            f"Sessão expirada persistida: {session.sessao_id}",
-            extra={'telefone': session.telefone}
-        )
-    except Exception as e:
-        logger.error(
-            f"Erro ao persistir sessão expirada: {e}",
-            extra={'telefone': session.telefone}
-        )
+# Estados terminais que não devem ser retornados como sessão ativa
+TERMINAL_STATES = ['processando', 'aprovado', 'rejeitado', 'erro', 'cancelado_usuario', 'expirado']
 
 
 class SessionManager:
     """
-    Gerencia sessões de conversa no Redis.
-    
+    Gerencia sessões de conversa no SQLite.
+
     Cada sessão contém:
     - Estado da máquina de estados
     - Dados da nota em construção
@@ -41,36 +30,57 @@ class SessionManager:
     - Métricas de uso (IA calls, interações, etc)
     """
 
-    def __init__(self):
-        self.prefix = 'session'
-
-    def _get_key(self, telefone: str) -> str:
-        """Gera chave Redis para o telefone."""
-        return f'{self.prefix}:{telefone}'
-
     def get_session(self, telefone: str) -> Optional[Session]:
         """
-        Recupera sessão do Redis.
+        Recupera sessão ativa do banco de dados.
+
+        Uma sessão é considerada ativa se:
+        1. Existe no banco
+        2. Não está em estado terminal
+        3. Não expirou (baseado no TTL)
 
         Args:
             telefone: Número de telefone do cliente
 
         Returns:
-            Objeto Session ou None se não existir
+            Objeto Session (Pydantic) ou None se não existir sessão ativa
         """
-        key = self._get_key(telefone)
-        data = cache.get(key)
-      
-        if not data:
-            logger.debug('Nenhuma sessão encontrada', extra={'telefone': telefone})
-            return None
-        
         try:
-            session = Session.from_json(data)
-            logger.debug(f'Sessão recuperada: {session.sessao_id}', extra={'telefone': telefone})
+            # Busca sessão mais recente que não está em estado terminal
+            snapshot = (
+                SessionSnapshot.objects
+                .filter(telefone=telefone)
+                .exclude(estado__in=TERMINAL_STATES)
+                .order_by('-session_updated_at')
+                .first()
+            )
+
+            if not snapshot:
+                logger.debug('Nenhuma sessão ativa encontrada', extra={'telefone': telefone})
+                return None
+
+            # Verificar expiração (lazy expiration)
+            if snapshot.is_expired():
+                logger.warning(
+                    f'Sessão expirada: {snapshot.sessao_id}',
+                    extra={'telefone': telefone}
+                )
+                # Marcar como expirada no banco
+                snapshot.estado = 'expirado'
+                snapshot.snapshot_reason = 'expired'
+                snapshot.save()
+                return None
+
+            # Converter para Pydantic Session
+            session = snapshot.to_session()
+            logger.debug(
+                f'Sessão recuperada: {session.sessao_id}',
+                extra={'telefone': telefone}
+            )
             return session
+
         except Exception as e:
-            logger.error(f'Erro ao deserializar sessão: {e}', extra={'telefone': telefone})
+            logger.error(f'Erro ao recuperar sessão: {e}', extra={'telefone': telefone})
             return None
 
     def create_session(self, telefone: str, ttl: int = 3600) -> Session:
@@ -85,38 +95,101 @@ class SessionManager:
             Nova sessão criada
         """
         session = Session(telefone=telefone, ttl=ttl)
-        self.save_session(session)
-        
+        self.save_session(session, reason='manual')
+
         logger.info(
             f'Sessão criada: {session.sessao_id}',
             extra={'telefone': telefone}
         )
-        
+
         return session
 
-    def save_session(self, session: Session) -> None:
+    @transaction.atomic
+    def save_session(self, session: Session, reason: str = 'manual') -> None:
         """
-        Salva sessão no Redis.
+        Salva sessão no banco de dados.
+
+        Se a sessão já existe, atualiza. Caso contrário, cria nova.
+        Também salva todas as mensagens do contexto.
 
         Args:
             session: Objeto Session para salvar
+            reason: Motivo do snapshot (manual, data_complete, confirmed, etc)
         """
-        key = self._get_key(session.telefone)
-        cache.set(key, session.to_json(), timeout=session.ttl)
-        
-        logger.debug(
-            'Sessão salva',
-            extra={
-                'telefone': session.telefone,
-                'sessao_id': session.sessao_id,
-                'estado': session.estado
-            }
-        )
+        try:
+            # Verificar se já existe
+            existing = SessionSnapshot.objects.filter(sessao_id=session.sessao_id).first()
+
+            if existing:
+                # Atualizar snapshot existente
+                existing.update_from_session(session)
+                existing.snapshot_reason = reason
+                existing.save()
+
+                # Atualizar mensagens (delete and recreate)
+                existing.messages.all().delete()
+                self._save_messages(existing, session)
+
+                logger.debug(
+                    f'Sessão atualizada: {session.sessao_id}',
+                    extra={
+                        'telefone': session.telefone,
+                        'sessao_id': session.sessao_id,
+                        'estado': session.estado
+                    }
+                )
+            else:
+                # Criar novo snapshot
+                snapshot = SessionSnapshot.from_session(session, reason)
+                snapshot.save()
+                self._save_messages(snapshot, session)
+
+                logger.debug(
+                    f'Sessão criada: {session.sessao_id}',
+                    extra={
+                        'telefone': session.telefone,
+                        'sessao_id': session.sessao_id,
+                        'estado': session.estado
+                    }
+                )
+
+        except Exception as e:
+            logger.error(
+                f'Erro ao salvar sessão: {e}',
+                extra={
+                    'telefone': session.telefone,
+                    'sessao_id': session.sessao_id
+                }
+            )
+            raise
+
+    def _save_messages(self, snapshot: SessionSnapshot, session: Session) -> None:
+        """
+        Salva todas as mensagens do contexto da sessão.
+
+        Args:
+            snapshot: SessionSnapshot para vincular mensagens
+            session: Session com mensagens do contexto
+        """
+        messages_to_create = []
+        for order, msg in enumerate(session.context):
+            messages_to_create.append(
+                SessionMessage(
+                    session=snapshot,
+                    role=msg.role,
+                    content=msg.content,
+                    timestamp=msg.timestamp,
+                    order=order
+                )
+            )
+
+        if messages_to_create:
+            SessionMessage.objects.bulk_create(messages_to_create)
 
     def update_session(self, session: Session) -> None:
         """
         Atualiza sessão existente (alias para save_session).
-        
+
         Args:
             session: Objeto Session para atualizar
         """
@@ -124,19 +197,43 @@ class SessionManager:
 
     def delete_session(self, telefone: str) -> bool:
         """
-        Remove sessão do Redis.
+        Marca sessão como processada (não deleta fisicamente).
+
+        Na nova arquitetura, não deletamos sessões - apenas marcamos
+        como estado terminal. Isso preserva o histórico.
 
         Args:
             telefone: Número de telefone do cliente
 
         Returns:
-            True se removeu, False se não existia
+            True se havia sessão ativa, False caso contrário
         """
-        key = self._get_key(telefone)
-        existed = cache.delete(key)
-        
-        logger.info('Sessão removida', extra={'telefone': telefone})
-        return bool(existed)
+        try:
+            # Busca sessão ativa
+            snapshot = (
+                SessionSnapshot.objects
+                .filter(telefone=telefone)
+                .exclude(estado__in=TERMINAL_STATES)
+                .order_by('-session_updated_at')
+                .first()
+            )
+
+            if snapshot:
+                # Marcar sessão como cancelada
+                snapshot.estado = 'cancelado_usuario'
+                snapshot.snapshot_reason = 'manual_clear'
+                snapshot.save()
+                logger.info(
+                    f'Sessão finalizada: {snapshot.sessao_id}',
+                    extra={'telefone': telefone}
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f'Erro ao finalizar sessão: {e}', extra={'telefone': telefone})
+            return False
 
     def get_or_create_session(self, telefone: str, ttl: int = 3600) -> Session:
         """
@@ -152,27 +249,37 @@ class SessionManager:
         session = self.get_session(telefone)
 
         if session:
-            # Verificar se expirou
-            if session.is_expired():
-                logger.warning('Sessão expirada, criando nova', extra={'telefone': telefone})
-                # Persistir sessão expirada antes de deletar
-                _persist_expired_session(session)
-                self.delete_session(telefone)
-                return self.create_session(telefone, ttl)
             return session
 
         return self.create_session(telefone, ttl)
 
     def get_ttl(self, telefone: str) -> int:
         """
-        Retorna o TTL (time to live) da sessão em segundos.
+        Retorna o TTL (time to live) restante da sessão em segundos.
 
         Args:
             telefone: Número de telefone do cliente
 
         Returns:
-            TTL em segundos ou 0 se não existir
+            TTL restante em segundos ou 0 se não existir
         """
-        key = self._get_key(telefone)
-        ttl = cache.ttl(key)
-        return ttl if ttl is not None else 0
+        try:
+            snapshot = (
+                SessionSnapshot.objects
+                .filter(telefone=telefone)
+                .exclude(estado__in=TERMINAL_STATES)
+                .order_by('-session_updated_at')
+                .first()
+            )
+
+            if not snapshot:
+                return 0
+
+            from django.utils import timezone
+            age_seconds = (timezone.now() - snapshot.session_updated_at).total_seconds()
+            remaining = max(0, snapshot.ttl - int(age_seconds))
+            return remaining
+
+        except Exception as e:
+            logger.error(f'Erro ao obter TTL: {e}', extra={'telefone': telefone})
+            return 0

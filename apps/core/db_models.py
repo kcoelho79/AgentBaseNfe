@@ -67,6 +67,12 @@ class SessionSnapshot(models.Model):
         default='null',
         verbose_name='Status CNPJ'
     )
+    cnpj_extracted = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True,
+        verbose_name='CNPJ Extraído'
+    )
     cnpj = models.CharField(
         max_length=18,
         blank=True,
@@ -84,6 +90,12 @@ class SessionSnapshot(models.Model):
         null=True,
         verbose_name='Problema CNPJ'
     )
+    cnpj_error_type = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Tipo Erro CNPJ'
+    )
 
     # Dados do Valor
     valor_status = models.CharField(
@@ -91,6 +103,12 @@ class SessionSnapshot(models.Model):
         choices=STATUS_CHOICES,
         default='null',
         verbose_name='Status Valor'
+    )
+    valor_extracted = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Valor Extraído'
     )
     valor = models.DecimalField(
         max_digits=12,
@@ -110,6 +128,12 @@ class SessionSnapshot(models.Model):
         null=True,
         verbose_name='Problema Valor'
     )
+    valor_error_type = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Tipo Erro Valor'
+    )
 
     # Dados da Descrição
     descricao_status = models.CharField(
@@ -117,6 +141,11 @@ class SessionSnapshot(models.Model):
         choices=STATUS_CHOICES,
         default='null',
         verbose_name='Status Descrição'
+    )
+    descricao_extracted = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Descrição Extraída'
     )
     descricao = models.TextField(
         blank=True,
@@ -127,6 +156,12 @@ class SessionSnapshot(models.Model):
         blank=True,
         null=True,
         verbose_name='Problema Descrição'
+    )
+    descricao_error_type = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Tipo Erro Descrição'
     )
 
     # Status de completude
@@ -143,6 +178,17 @@ class SessionSnapshot(models.Model):
         default=list,
         blank=True,
         verbose_name='Campos Inválidos'
+    )
+    user_message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Mensagem ao Usuário'
+    )
+
+    # TTL e Expiração
+    ttl = models.PositiveIntegerField(
+        default=3600,
+        verbose_name='TTL (segundos)'
     )
 
     # Métricas
@@ -195,6 +241,8 @@ class SessionSnapshot(models.Model):
             models.Index(fields=['telefone', 'estado']),
             models.Index(fields=['data_complete']),
             models.Index(fields=['session_created_at']),
+            # Index for active session lookup (by telefone with recent update)
+            models.Index(fields=['telefone', '-session_updated_at']),
         ]
 
     def __str__(self):
@@ -220,22 +268,31 @@ class SessionSnapshot(models.Model):
             estado=session.estado,
             # CNPJ
             cnpj_status=invoice.cnpj.status,
+            cnpj_extracted=invoice.cnpj.cnpj_extracted,
             cnpj=invoice.cnpj.cnpj,
             cnpj_razao_social=invoice.cnpj.razao_social,
             cnpj_issue=invoice.cnpj.cnpj_issue,
+            cnpj_error_type=invoice.cnpj.error_type,
             # Valor
             valor_status=invoice.valor.status,
+            valor_extracted=invoice.valor.valor_extracted,
             valor=invoice.valor.valor,
             valor_formatted=invoice.valor.valor_formatted,
             valor_issue=invoice.valor.valor_issue,
+            valor_error_type=invoice.valor.error_type,
             # Descrição
             descricao_status=invoice.descricao.status,
+            descricao_extracted=invoice.descricao.descricao_extracted,
             descricao=invoice.descricao.descricao,
             descricao_issue=invoice.descricao.descricao_issue,
+            descricao_error_type=invoice.descricao.error_type,
             # Completude
             data_complete=invoice.data_complete,
             missing_fields=invoice.missing_fields,
             invalid_fields=invoice.invalid_fields,
+            user_message=invoice.user_message,
+            # TTL
+            ttl=session.ttl,
             # Métricas
             interaction_count=session.interaction_count,
             bot_message_count=session.bot_message_count,
@@ -246,6 +303,125 @@ class SessionSnapshot(models.Model):
             # Reason
             snapshot_reason=reason,
         )
+
+    def to_session(self):
+        """
+        Converte SessionSnapshot de volta para um objeto Session (Pydantic).
+
+        Returns:
+            Objeto Session do Pydantic
+        """
+        from apps.core.models import Session, DadosNFSe, CNPJExtraido, ValorExtraido, DescricaoExtraida, Message
+
+        # Reconstruct invoice_data
+        invoice_data = DadosNFSe(
+            cnpj=CNPJExtraido(
+                cnpj_extracted=self.cnpj_extracted,
+                cnpj=self.cnpj,
+                razao_social=self.cnpj_razao_social,
+                cnpj_issue=self.cnpj_issue,
+                error_type=self.cnpj_error_type,
+                status=self.cnpj_status,
+            ),
+            valor=ValorExtraido(
+                valor_extracted=self.valor_extracted,
+                valor=self.valor,
+                valor_formatted=self.valor_formatted,
+                valor_issue=self.valor_issue,
+                error_type=self.valor_error_type,
+                status=self.valor_status,
+            ),
+            descricao=DescricaoExtraida(
+                descricao_extracted=self.descricao_extracted,
+                descricao=self.descricao,
+                descricao_issue=self.descricao_issue,
+                error_type=self.descricao_error_type,
+                status=self.descricao_status,
+            ),
+            data_complete=self.data_complete,
+            missing_fields=self.missing_fields or [],
+            invalid_fields=self.invalid_fields or [],
+            user_message=self.user_message or '',
+        )
+
+        # Reconstruct context from SessionMessage
+        context = []
+        for msg in self.messages.all().order_by('order', 'timestamp'):
+            context.append(Message(
+                role=msg.role,
+                content=msg.content,
+                timestamp=msg.timestamp,
+            ))
+
+        # Reconstruct Session
+        return Session(
+            sessao_id=self.sessao_id,
+            telefone=self.telefone,
+            estado=self.estado,
+            invoice_data=invoice_data,
+            interaction_count=self.interaction_count,
+            bot_message_count=self.bot_message_count,
+            ai_calls_count=self.ai_calls_count,
+            context=context,
+            created_at=self.session_created_at,
+            updated_at=self.session_updated_at,
+            ttl=self.ttl,
+        )
+
+    def is_expired(self) -> bool:
+        """
+        Verifica se a sessão expirou baseado no TTL.
+
+        Returns:
+            True se expirou, False caso contrário
+        """
+        from django.utils import timezone
+        age_seconds = (timezone.now() - self.session_updated_at).total_seconds()
+        return age_seconds > self.ttl
+
+    def update_from_session(self, session) -> None:
+        """
+        Atualiza os campos do snapshot a partir de um objeto Session.
+
+        Args:
+            session: Objeto Session do Pydantic
+        """
+        invoice = session.invoice_data
+
+        self.estado = session.estado
+        # CNPJ
+        self.cnpj_status = invoice.cnpj.status
+        self.cnpj_extracted = invoice.cnpj.cnpj_extracted
+        self.cnpj = invoice.cnpj.cnpj
+        self.cnpj_razao_social = invoice.cnpj.razao_social
+        self.cnpj_issue = invoice.cnpj.cnpj_issue
+        self.cnpj_error_type = invoice.cnpj.error_type
+        # Valor
+        self.valor_status = invoice.valor.status
+        self.valor_extracted = invoice.valor.valor_extracted
+        self.valor = invoice.valor.valor
+        self.valor_formatted = invoice.valor.valor_formatted
+        self.valor_issue = invoice.valor.valor_issue
+        self.valor_error_type = invoice.valor.error_type
+        # Descrição
+        self.descricao_status = invoice.descricao.status
+        self.descricao_extracted = invoice.descricao.descricao_extracted
+        self.descricao = invoice.descricao.descricao
+        self.descricao_issue = invoice.descricao.descricao_issue
+        self.descricao_error_type = invoice.descricao.error_type
+        # Completude
+        self.data_complete = invoice.data_complete
+        self.missing_fields = invoice.missing_fields
+        self.invalid_fields = invoice.invalid_fields
+        self.user_message = invoice.user_message
+        # TTL
+        self.ttl = session.ttl
+        # Métricas
+        self.interaction_count = session.interaction_count
+        self.bot_message_count = session.bot_message_count
+        self.ai_calls_count = session.ai_calls_count
+        # Timestamps
+        self.session_updated_at = session.updated_at
 
 
 class SessionMessage(models.Model):
