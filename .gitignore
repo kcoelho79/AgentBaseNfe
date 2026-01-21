@@ -3,6 +3,9 @@ db.sqlite3
 .env
 *.KLEBER*
 PROXIMO*
+INSTRUCOES/
+.claude/
+CLAUDE.md
 
 # pasta projeto Python
 etc/

@@ -69,7 +69,7 @@ class AIExtractor:
         try:
             tempo_inicio = time.time()
 
-            response = self.client.chat.completions.parse(
+            response = self.client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": self.SYSTEM_PROMPT},
