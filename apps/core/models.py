@@ -152,10 +152,17 @@ class DescricaoExtraida(CampoExtraido):
     @model_validator(mode='after')
     def validar_descricao_completa(self):
         """Validação rigorosa de Descrição - BLOQUEIA dados inválidos."""
-        # Se não tem descrição ou já está em erro, não valida
-        if not self.descricao or self.status == 'error':
-            return self
         
+        # corrigir prompt que não completa descricao_extracted
+        if not self.descricao:
+            self.descricao = self.descricao_extracted
+        
+        # Se ainda está None/vazio após atribuição, retorna como null
+        if not self.descricao or self.descricao.strip() == "":
+            self.status = 'null'
+            self.descricao = None
+            return self
+                    
         # Valida tamanho mínimo e máximo
         if len(self.descricao) < 10:
             logger.error(f'Descrição muito curta: {len(self.descricao)} caracteres')
@@ -221,15 +228,20 @@ class DadosNFSe(BaseModel):
             self.descricao.status == 'validated' and
             len(self.invalid_fields) == 0
         )
-        # deixar a IA montar o prompt
-        # # Monta mensagem para usuário
-        # if self.invalid_fields:
-        #     self.user_message = "❌ Dados inválidos:\n" + "\n".join(f"• {field}" for field in self.invalid_fields)
-        # elif self.missing_fields:
-        #     self.user_message = "⚠️ Ainda falta:\n" + "\n".join(f"• {field}" for field in self.missing_fields)
-        # else:
-        #     self.user_message = "✅ Todos os dados foram coletados!"
-        
+        #deixar a IA montar o prompt
+        # Monta mensagem para usuário
+
+        # Prioridade: erros de validação > user_message da IA > fallback
+        if self.invalid_fields:
+            self.user_message = "❌ Dados inválidos:\n" + "\n".join(f"• {msg}" for msg in self.invalid_fields)
+        elif not self.user_message or not self.user_message.strip():
+            # Fallback se a IA não gerou user_message
+            if self.missing_fields:
+                campos = ", ".join(self.missing_fields)
+                self.user_message = f"Para emitir a nota, ainda preciso de: {campos}."
+            elif self.data_complete:
+                self.user_message = "Pronto! Vou preparar o espelho da nota para você confirmar."
+
         return self
 
     def is_valid(self) -> bool:
@@ -240,27 +252,72 @@ class DadosNFSe(BaseModel):
             self.descricao.status == 'validated'
         )
     
-    def merge(self, cache: 'DadosNFSe') -> 'DadosNFSe':
+    def merge(self, novo: 'DadosNFSe') -> 'DadosNFSe':
         """
-        Mescla com dados anterioes (estão cache Redis), preservando campos válidos
-
-        Regra: Só substitui um campo anterior se o novo status != 'null'
-
+        Mescla dados novos com anteriores, priorizando lógica de recuperação.
+        
+        REGRAS DE MERGE:
+        1. Se campo ANTERIOR tem erro → SEMPRE usa NOVO (permite correção)
+        2. Se campo NOVO é 'validated' → SEMPRE usa NOVO (dado válido tem prioridade)
+        3. Se campo NOVO é 'null' e ANTERIOR é 'validated' → mantém ANTERIOR
+        4. Caso contrário → usa NOVO
+        
         Args:
-            cache: Outro objeto DadosNFSe para mesclar
-
+            novo: Novos dados extraídos da mensagem atual
+            
         Returns:
-            Novo objeto DadosNFSe mesclado
+            DadosNFSe mesclado com melhor conjunto de dados
         """
+        
+        # CNPJ: Prioriza validated, descarta erro
+        if self.cnpj.status == 'error':
+            # Anterior tinha erro → sempre tenta novo (mesmo que null)
+            cnpj_final = novo.cnpj
+            logger.info(f"CNPJ: descartando erro anterior, usando novo ({novo.cnpj.status})")
+        elif novo.cnpj.status == 'validated':
+            # Novo é válido → sempre usa
+            cnpj_final = novo.cnpj
+            logger.info(f"CNPJ: usando novo validado")
+        elif novo.cnpj.status == 'null' and self.cnpj.status == 'validated':
+            # Novo é null mas anterior válido → mantém anterior
+            cnpj_final = self.cnpj
+            logger.info(f"CNPJ: mantendo anterior validado")
+        else:
+            # Demais casos → usa novo
+            cnpj_final = novo.cnpj
+        
+        # VALOR: Mesma lógica
+        if self.valor.status == 'error':
+            valor_final = novo.valor
+            logger.info(f"Valor: descartando erro anterior, usando novo ({novo.valor.status})")
+        elif novo.valor.status == 'validated':
+            valor_final = novo.valor
+            logger.info(f"Valor: usando novo validado")
+        elif novo.valor.status == 'null' and self.valor.status == 'validated':
+            valor_final = self.valor
+            logger.info(f"Valor: mantendo anterior validado")
+        else:
+            valor_final = novo.valor
+        
+        # DESCRIÇÃO: Mesma lógica
+        if self.descricao.status == 'error':
+            descricao_final = novo.descricao
+            logger.info(f"Descrição: descartando erro anterior, usando novo ({novo.descricao.status})")
+        elif novo.descricao.status == 'validated':
+            descricao_final = novo.descricao
+            logger.info(f"Descrição: usando novo validado")
+        elif novo.descricao.status == 'null' and self.descricao.status == 'validated':
+            descricao_final = self.descricao
+            logger.info(f"Descrição: mantendo anterior validado")
+        else:
+            descricao_final = novo.descricao
+        
         return DadosNFSe(
-            cnpj=cache.cnpj if cache.cnpj.status != 'null' else self.cnpj,
-            valor=cache.valor if cache.valor.status != 'null' else self.valor,
-            descricao=cache.descricao if cache.descricao.status != 'null' else self.descricao,
-            data_complete=cache.data_complete,
-            missing_fields=cache.missing_fields,
-            invalid_fields=cache.invalid_fields,
-            user_message=cache.user_message
-
+            cnpj=cnpj_final,
+            valor=valor_final,
+            descricao=descricao_final,
+            user_message=novo.user_message  # Preservar user_message da extração mais recente
+            # data_complete, missing_fields, etc serão recalculados pelo validador
         )
 
     def to_dict(self) -> dict:
@@ -285,10 +342,11 @@ class DadosNFSe(BaseModel):
         logger.info("Convertendo dados para contexto textual")
         
         if not any([
-            self.cnpj.status != 'null',
-            self.valor.status != 'null', 
-            self.descricao.status != 'null'
+            self.cnpj.status == 'validated',
+            self.valor.status == 'validated', 
+            self.descricao.status == 'validated'
         ]):
+            logger.info("Nenhum campo validado - contexto vazio")
             return ""
         
         lines = []
@@ -296,30 +354,23 @@ class DadosNFSe(BaseModel):
         # CNPJ
         if self.cnpj.status == "validated":
             lines.append(f"CNPJ já informado: {self.cnpj.cnpj}")
-        elif self.cnpj.status == "error":
-            lines.append(f"CNPJ informado está com erro: {self.cnpj.cnpj_issue}")
         else:
             lines.append("CNPJ ainda não foi informado.")
         
         # Valor
         if self.valor.status == "validated":
             lines.append(f"Valor já informado: {self.valor.valor_formatted}")
-        elif self.valor.status == "error":
-            lines.append(f"Valor informado está com erro: {self.valor.valor_issue}")
         else:
             lines.append("Valor ainda não foi informado.")
         
         # Descrição
         if self.descricao.status == "validated":
-            desc_preview = (self.descricao.descricao[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
+            desc_preview = (self.descricao.descricao_extracted[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
             lines.append(f"Descrição já informada: {desc_preview}")
         elif self.descricao.status == "warning":
-            desc_preview = (self.descricao.descricao[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
+            desc_preview = (self.descricao.descricao_extracted[:80] + "...") if len(self.descricao.descricao) > 80 else self.descricao.descricao
             lines.append(f"Descrição precisa ser confirmada: {desc_preview}")
-        elif self.descricao.status == "error":
-            lines.append(f"Descrição informada está com erro: {self.descricao.descricao_issue}")
-        else:
-            lines.append("Descrição ainda não foi informada.")
+        
         
         return "CONTEXTO ATUAL:\n" + "\n".join(f"- {line}" for line in lines)
     
