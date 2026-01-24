@@ -9,4 +9,5 @@ urlpatterns = [
     path('emissoes/', views.NotaFiscalEmissaoListView.as_view(), name='emissao_list'),
     path('processadas/', views.NotaFiscalProcessadaListView.as_view(), name='processada_list'),
     path('tomadores/', views.ClienteTomadorListView.as_view(), name='tomador_list'),
+    path('consulta-cnpj/', views.ConsultaReceitaFederalView.as_view(), name='consulta_cnpj'),
 ]

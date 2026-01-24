@@ -68,17 +68,17 @@ class ReceitaFederalService:
         # Cria novo tomador
         tomador = ClienteTomador.objects.create(
             cnpj=cnpj_limpo,
-            razao_social=dados.get('razao_social', '')[:255],
-            nome_fantasia=dados.get('nome_fantasia', '')[:255],
-            email=dados.get('email', '')[:254],
-            cep=dados.get('cep', '').replace('-', '')[:8],
-            logradouro=dados.get('logradouro', '')[:255],
-            numero=dados.get('numero', '')[:10],
-            complemento=dados.get('complemento', '')[:100],
-            bairro=dados.get('bairro', '')[:100],
-            cidade=dados.get('municipio', '')[:100],
-            codigo_cidade=str(dados.get('codigo_municipio_ibge', ''))[:7],
-            estado=dados.get('uf', '')[:2],
+            razao_social=(dados.get('razao_social') or '')[:255],
+            nome_fantasia=(dados.get('nome_fantasia') or '')[:255],
+            email=(dados.get('email') or '')[:254],
+            cep=(dados.get('cep') or '').replace('-', '')[:8],
+            logradouro=(dados.get('logradouro') or '')[:255],
+            numero=(dados.get('numero') or '')[:10],
+            complemento=(dados.get('complemento') or '')[:100],
+            bairro=(dados.get('bairro') or '')[:100],
+            cidade=(dados.get('municipio') or '')[:100],
+            codigo_cidade=str(dados.get('codigo_municipio_ibge') or '')[:7],
+            estado=(dados.get('uf') or '')[:2],
             dados_receita_raw=dados
         )
         

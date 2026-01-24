@@ -27,7 +27,7 @@
 
             <!-- Notas Fiscais -->
             <li class="nav-item">
-                <a class="nav-link {% if 'nota_fiscal' in request.resolver_match.url_name or 'emissao' in request.resolver_match.url_name or 'processada' in request.resolver_match.url_name or 'tomador' in request.resolver_match.url_name %}active{% endif %}" 
+                <a class="nav-link {% if 'nota_fiscal' in request.resolver_match.url_name or 'emissao' in request.resolver_match.url_name or 'processada' in request.resolver_match.url_name or 'tomador' in request.resolver_match.url_name or 'consulta_cnpj' in request.resolver_match.url_name %}active{% endif %}" 
                    data-bs-toggle="collapse" 
                    href="#notasFiscaisSubmenu" 
                    role="button" 
@@ -36,7 +36,7 @@
                     Notas Fiscais
                     <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
-                <div class="collapse {% if 'nota_fiscal' in request.resolver_match.url_name or 'emissao' in request.resolver_match.url_name or 'processada' in request.resolver_match.url_name or 'tomador' in request.resolver_match.url_name %}show{% endif %}" id="notasFiscaisSubmenu">
+                <div class="collapse {% if 'nota_fiscal' in request.resolver_match.url_name or 'emissao' in request.resolver_match.url_name or 'processada' in request.resolver_match.url_name or 'tomador' in request.resolver_match.url_name or 'consulta_cnpj' in request.resolver_match.url_name %}show{% endif %}" id="notasFiscaisSubmenu">
                     <ul class="nav flex-column ms-3">
                         <li class="nav-item">
                             <a class="nav-link py-1 {% if 'emissao_list' in request.resolver_match.url_name %}active{% endif %}" 
@@ -57,6 +57,13 @@
                                href="{% url 'nfse:tomador_list' %}">
                                 <i class="bi bi-person-badge me-2"></i>
                                 Clientes Tomadores
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link py-1 {% if 'consulta_cnpj' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'nfse:consulta_cnpj' %}">
+                                <i class="bi bi-search me-2"></i>
+                                Consultar CNPJ
                             </a>
                         </li>
                         <li class="nav-item">

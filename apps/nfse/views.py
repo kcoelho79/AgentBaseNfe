@@ -3,13 +3,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count
+from django.contrib import messages
+from django.shortcuts import redirect
 import json
 import logging
+import httpx
 from django.views.generic import (
     TemplateView, ListView, CreateView, UpdateView, DeleteView, DetailView, View
 )
 from apps.nfse.models import NFSeProcessada, NFSeEmissao, ClienteTomador
 from apps.contabilidade.models import Empresa
+from apps.nfse.services.receita_federal import ReceitaFederalService
 
 logger = logging.getLogger(__name__)
 
@@ -213,3 +217,96 @@ class ClienteTomadorListView(LoginRequiredMixin, ListView):
         context['total_tomadores'] = ClienteTomador.objects.count()
         
         return context
+
+
+class ConsultaReceitaFederalView(LoginRequiredMixin, TemplateView):
+    """View para consultar CNPJ na Receita Federal."""
+    template_name = 'nfse/consulta_cnpj.html'
+    
+    def post(self, request, *args, **kwargs):
+        """Processa consulta de CNPJ."""
+        cnpj = request.POST.get('cnpj', '').strip()
+        acao = request.POST.get('acao', '')  # 'consultar' ou 'adicionar'
+        
+        if not cnpj:
+            messages.error(request, 'CNPJ é obrigatório')
+            return self.get(request, *args, **kwargs)
+        
+        # Limpar CNPJ
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+        
+        if len(cnpj_limpo) != 14:
+            messages.error(request, 'CNPJ inválido. Deve conter 14 dígitos.')
+            return self.get(request, *args, **kwargs)
+        
+        try:
+            # Ação: Adicionar cliente tomador
+            if acao == 'adicionar':
+                # Verifica se já existe
+                tomador_existente = ClienteTomador.objects.filter(cnpj=cnpj_limpo).first()
+                if tomador_existente:
+                    messages.warning(
+                        request, 
+                        f'Cliente {tomador_existente.razao_social} já está cadastrado!'
+                    )
+                    return redirect('nfse:tomador_list')
+                
+                # Consulta e cria
+                tomador = ReceitaFederalService.buscar_ou_criar_tomador(cnpj_limpo)
+                messages.success(
+                    request, 
+                    f'Cliente {tomador.razao_social} adicionado com sucesso!'
+                )
+                return redirect('nfse:tomador_list')
+            
+            # Ação padrão: Apenas consultar
+            dados = ReceitaFederalService.consultar_cnpj(cnpj_limpo)
+            
+            # Verifica se já está cadastrado
+            ja_cadastrado = ClienteTomador.objects.filter(cnpj=cnpj_limpo).exists()
+            
+            # Estrutura dados para exibição
+            dados_formatados = {
+                'cnpj': cnpj_limpo,
+                'cnpj_formatado': f"{cnpj_limpo[:2]}.{cnpj_limpo[2:5]}.{cnpj_limpo[5:8]}/{cnpj_limpo[8:12]}-{cnpj_limpo[12:]}",
+                'razao_social': dados.get('razao_social', '-'),
+                'nome_fantasia': dados.get('nome_fantasia', '-'),
+                'situacao_cadastral': dados.get('descricao_situacao_cadastral', '-'),
+                'data_situacao': dados.get('data_situacao_cadastral', '-'),
+                'tipo': dados.get('descricao_tipo_de_logradouro', '') + ' ' + dados.get('logradouro', ''),
+                'numero': dados.get('numero', '-'),
+                'complemento': dados.get('complemento', '-'),
+                'bairro': dados.get('bairro', '-'),
+                'cep': dados.get('cep', '-'),
+                'municipio': dados.get('municipio', '-'),
+                'uf': dados.get('uf', '-'),
+                'email': dados.get('email', '-'),
+                'telefone': dados.get('ddd_telefone_1', '-'),
+                'natureza_juridica': dados.get('natureza_juridica', '-'),
+                'capital_social': dados.get('capital_social', '-'),
+                'porte': dados.get('porte', '-'),
+                'cnae_principal': dados.get('cnae_fiscal_descricao', '-'),
+                'data_abertura': dados.get('data_inicio_atividade', '-'),
+                'ja_cadastrado': ja_cadastrado,
+            }
+            
+            messages.success(request, 'CNPJ consultado com sucesso!')
+            
+            context = self.get_context_data(**kwargs)
+            context['dados'] = dados_formatados
+            context['cnpj_pesquisado'] = cnpj
+            
+            return self.render_to_response(context)
+            
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                messages.error(request, 'CNPJ não encontrado na Receita Federal')
+            else:
+                messages.error(request, f'Erro ao consultar CNPJ: {e.response.status_code}')
+            logger.exception(f"Erro HTTP ao consultar CNPJ {cnpj_limpo}")
+            
+        except Exception as e:
+            messages.error(request, f'Erro ao consultar CNPJ: {str(e)}')
+            logger.exception(f"Erro ao consultar CNPJ {cnpj_limpo}")
+        
+        return self.get(request, *args, **kwargs)
