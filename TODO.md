@@ -12,3 +12,13 @@ APP Empresa
   [ ] Notas fiscal - lista todas as notas da empresa
   [ ] Clientes Tomadores - lista ClientesTomadores dessa empresa
 
+
+NFSE
+    criar lista notas emitidas
+    criar lista notas processadas
+    atualizar menu home notafiscal/emitidas/processadas
+    visualizar no menu empresas - notas ficais (notas emitidas)
+
+Sessoes 
+    [ ] criar details da sessão 
+

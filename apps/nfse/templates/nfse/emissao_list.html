@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block title %}NFSe Emitidas - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">NFSe - Emissões</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">NFSe Emitidas</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- Prestador -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Prestador</label>
+                <select class="form-select form-select-sm" name="prestador">
+                    <option value="">Todos</option>
+                    {% for prestador in prestadores %}
+                    <option value="{{ prestador.pk }}" {% if request.GET.prestador == prestador.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ prestador.razao_social|truncatechars:30 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Tomador (busca por CNPJ ou Razão Social) -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Tomador</label>
+                <input type="text" class="form-control form-control-sm" name="tomador" 
+                       placeholder="CNPJ ou Razão Social" value="{{ request.GET.tomador }}">
+            </div>
+
+            <!-- Sessão -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">ID Integração</label>
+                <input type="text" class="form-control form-control-sm" name="session" 
+                       placeholder="Sessão" value="{{ request.GET.session }}">
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Status</label>
+                <select class="form-select form-select-sm" name="status">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="enviado" {% if request.GET.status == 'enviado' %}selected{% endif %}>Enviado</option>
+                    <option value="processando" {% if request.GET.status == 'processando' %}selected{% endif %}>Processando</option>
+                    <option value="concluido" {% if request.GET.status == 'concluido' %}selected{% endif %}>Concluído</option>
+                    <option value="erro" {% if request.GET.status == 'erro' %}selected{% endif %}>Erro</option>
+                    <option value="cancelado" {% if request.GET.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+
+            <!-- Botões -->
+            <div class="col-md-2">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-outline-primary flex-grow-1">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'nfse:emissao_list' %}" class="btn btn-sm btn-outline-secondary" title="Limpar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resumo de Resultados -->
+{% if nfse.exists %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    Encontradas <strong>{{ paginator.count }}</strong> emissões de NFSe
+</div>
+{% endif %}
+
+<!-- Tabela -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-file-earmark-check me-2"></i>
+            Emissões de NFSe
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID Integração</th>
+                        <th>Prestador</th>
+                        <th>Tomador</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emissao in nfse %}
+                    <tr>
+                        <td>
+                            <code class="text-primary">{{ emissao.id_integracao|truncatechars:20 }}</code>
+                            <small class="d-block text-muted">
+                                <i class="bi bi-whatsapp text-success me-1"></i>
+                                Sessão: {{ emissao.session.sessao_id|truncatechars:15 }}
+                            </small>
+                        </td>
+                        <td>
+                            <strong>{{ emissao.prestador.razao_social|truncatechars:25 }}</strong>
+                            <small class="d-block text-muted">{{ emissao.prestador.cpf_cnpj }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ emissao.tomador.razao_social|truncatechars:25 }}</strong>
+                            <small class="d-block text-muted">{{ emissao.tomador.cnpj }}</small>
+                        </td>
+                        <td>
+                            <span data-bs-toggle="tooltip" title="{{ emissao.descricao_servico }}">
+                                {{ emissao.descricao_servico|truncatechars:30 }}
+                            </span>
+                            <small class="d-block text-muted">Cód: {{ emissao.codigo_servico }}</small>
+                        </td>
+                        <td>
+                            <strong class="text-success">R$ {{ emissao.valor_servico|floatformat:2 }}</strong>
+                            {% if emissao.desconto_incondicionado > 0 %}
+                            <small class="d-block text-muted">
+                                Desc: R$ {{ emissao.desconto_incondicionado|floatformat:2 }}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if emissao.status == 'pendente' %}
+                                <span class="badge bg-secondary">Pendente</span>
+                            {% elif emissao.status == 'enviado' %}
+                                <span class="badge bg-info">Enviado</span>
+                            {% elif emissao.status == 'processando' %}
+                                <span class="badge bg-primary">Processando</span>
+                            {% elif emissao.status == 'concluido' %}
+                                <span class="badge bg-success">Concluído</span>
+                            {% elif emissao.status == 'erro' %}
+                                <span class="badge bg-danger">Erro</span>
+                            {% elif emissao.status == 'cancelado' %}
+                                <span class="badge bg-warning">Cancelado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ emissao.get_status_display }}</span>
+                            {% endif %}
+                            
+                            {% if emissao.erro_mensagem %}
+                            <i class="bi bi-exclamation-triangle-fill text-warning ms-1" 
+                               data-bs-toggle="tooltip" 
+                               title="{{ emissao.erro_mensagem|truncatechars:100 }}"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span data-bs-toggle="tooltip" title="{{ emissao.created_at|date:'d/m/Y H:i:s' }}">
+                                {{ emissao.created_at|date:"d/m/Y" }}
+                            </span>
+                            <small class="d-block text-muted">{{ emissao.created_at|date:"H:i" }}</small>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                {% if emissao.nota_processada %}
+                                <a href="#" class="btn btn-outline-success" 
+                                   data-bs-toggle="tooltip" title="Ver NFSe">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#detailModal{{ emissao.pk }}"
+                                        title="Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-0">Nenhuma emissão de NFSe encontrada</p>
+                            {% if request.GET %}
+                            <a href="{% url 'nfse:emissao_list' %}" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modals de Detalhe -->
+{% for emissao in nfse %}
+<div class="modal fade" id="detailModal{{ emissao.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes da Emissão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">ID Integração</dt>
+                    <dd class="col-sm-8"><code>{{ emissao.id_integracao }}</code></dd>
+
+                    <dt class="col-sm-4">Sessão</dt>
+                    <dd class="col-sm-8"><code>{{ emissao.session.sessao_id }}</code></dd>
+
+                    <dt class="col-sm-4">Valor Líquido</dt>
+                    <dd class="col-sm-8">
+                        R$ {{ emissao.valor_servico|floatformat:2 }}
+                        {% if emissao.desconto_incondicionado > 0 %}
+                        - R$ {{ emissao.desconto_incondicionado|floatformat:2 }} = 
+                        <strong>R$ {% widthratio emissao.valor_servico 1 1|floatformat:2 %}</strong>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4">Alíquota ISS</dt>
+                    <dd class="col-sm-8">{{ emissao.aliquota }}%</dd>
+
+                    <dt class="col-sm-4">CNAE</dt>
+                    <dd class="col-sm-8">{{ emissao.cnae }}</dd>
+
+                    <dt class="col-sm-4">Criado em</dt>
+                    <dd class="col-sm-8">{{ emissao.created_at|date:"d/m/Y H:i:s" }}</dd>
+
+                    {% if emissao.enviado_em %}
+                    <dt class="col-sm-4">Enviado em</dt>
+                    <dd class="col-sm-8">{{ emissao.enviado_em|date:"d/m/Y H:i:s" }}</dd>
+                    {% endif %}
+
+                    {% if emissao.processado_em %}
+                    <dt class="col-sm-4">Processado em</dt>
+                    <dd class="col-sm-8">{{ emissao.processado_em|date:"d/m/Y H:i:s" }}</dd>
+                    {% endif %}
+
+                    {% if emissao.erro_mensagem %}
+                    <dt class="col-sm-4">Erro</dt>
+                    <dd class="col-sm-8"><span class="text-danger">{{ emissao.erro_mensagem }}</span></dd>
+                    {% endif %}
+
+                    <dt class="col-sm-4">Descrição do Serviço</dt>
+                    <dd class="col-sm-8">{{ emissao.descricao_servico }}</dd>
+                </dl>
+
+                {% if emissao.nota_processada %}
+                <hr>
+                <h6>NFSe Autorizada</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Número</dt>
+                    <dd class="col-sm-8">{{ emissao.nota_processada.numero }}</dd>
+
+                    <dt class="col-sm-4">Chave</dt>
+                    <dd class="col-sm-8"><code>{{ emissao.nota_processada.chave }}</code></dd>
+
+                    <dt class="col-sm-4">Protocolo</dt>
+                    <dd class="col-sm-8">{{ emissao.nota_processada.protocolo }}</dd>
+
+                    {% if emissao.nota_processada.url_pdf %}
+                    <dt class="col-sm-4">PDF</dt>
+                    <dd class="col-sm-8">
+                        <a href="{{ emissao.nota_processada.url_pdf }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-file-pdf me-1"></i>Baixar PDF
+                        </a>
+                    </dd>
+                    {% endif %}
+
+                    {% if emissao.nota_processada.url_xml %}
+                    <dt class="col-sm-4">XML</dt>
+                    <dd class="col-sm-8">
+                        <a href="{{ emissao.nota_processada.url_xml }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-file-code me-1"></i>Baixar XML
+                        </a>
+                    </dd>
+                    {% endif %}
+                </dl>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ativar tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+});
+</script>
+{% endblock %}

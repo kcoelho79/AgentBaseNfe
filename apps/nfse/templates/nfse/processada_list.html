@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block title %}NFSe Processadas - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">NFSe Processadas</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">NFSe Processadas</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- Prestador -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Prestador</label>
+                <select class="form-select form-select-sm" name="prestador">
+                    <option value="">Todos</option>
+                    {% for prestador in prestadores %}
+                    <option value="{{ prestador.pk }}" {% if request.GET.prestador == prestador.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ prestador.razao_social|truncatechars:30 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Tomador -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Tomador</label>
+                <input type="text" class="form-control form-control-sm" name="tomador" 
+                       placeholder="CNPJ ou Razão Social" value="{{ request.GET.tomador }}">
+            </div>
+
+            <!-- Número -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Número NFSe</label>
+                <input type="text" class="form-control form-control-sm" name="numero" 
+                       placeholder="Número" value="{{ request.GET.numero }}">
+            </div>
+
+            <!-- Data Início -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Data Início</label>
+                <input type="date" class="form-control form-control-sm" name="data_inicio" 
+                       value="{{ request.GET.data_inicio }}">
+            </div>
+
+            <!-- Data Fim -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Data Fim</label>
+                <input type="date" class="form-control form-control-sm" name="data_fim" 
+                       value="{{ request.GET.data_fim }}">
+            </div>
+
+            <!-- Botões -->
+            <div class="col-md-12">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'nfse:processada_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i>Limpar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resumo -->
+{% if notas.exists %}
+<div class="alert alert-success mb-4">
+    <i class="bi bi-check-circle me-2"></i>
+    Encontradas <strong>{{ paginator.count }}</strong> NFSe autorizadas
+</div>
+{% endif %}
+
+<!-- Tabela -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-file-earmark-check me-2"></i>
+            Notas Fiscais Autorizadas
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Prestador</th>
+                        <th>Tomador</th>
+                        <th>Valor</th>
+                        <th>Emissão</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nota in notas %}
+                    <tr>
+                        <td>
+                            <strong class="text-primary">{{ nota.numero }}</strong>
+                            {% if nota.serie %}
+                            <small class="d-block text-muted">Série: {{ nota.serie }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ nota.emissao.prestador.razao_social|truncatechars:25 }}</strong>
+                            <small class="d-block text-muted">
+                                <code>{{ nota.emitente }}</code>
+                            </small>
+                        </td>
+                        <td>
+                            <strong>{{ nota.emissao.tomador.razao_social|truncatechars:25 }}</strong>
+                            <small class="d-block text-muted">
+                                <code>{{ nota.destinatario }}</code>
+                            </small>
+                        </td>
+                        <td>
+                            <strong class="text-success">R$ {{ nota.valor|floatformat:2 }}</strong>
+                        </td>
+                        <td>
+                            <span data-bs-toggle="tooltip" title="{{ nota.data_emissao|date:'d/m/Y' }}">
+                                {{ nota.data_emissao|date:"d/m/Y" }}
+                            </span>
+                            <small class="d-block text-muted">
+                                Aut: {{ nota.data_autorizacao|date:"d/m/Y" }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if nota.status == 'CONCLUIDO' or nota.c_stat == 100 %}
+                                <span class="badge bg-success">Autorizada</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ nota.status }}</span>
+                            {% endif %}
+                            <small class="d-block text-muted">cStat: {{ nota.c_stat }}</small>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                {% if nota.url_pdf %}
+                                <a href="{{ nota.url_pdf }}" target="_blank" 
+                                   class="btn btn-outline-danger" 
+                                   data-bs-toggle="tooltip" title="Baixar PDF">
+                                    <i class="bi bi-file-pdf"></i>
+                                </a>
+                                {% endif %}
+                                {% if nota.url_xml %}
+                                <a href="{{ nota.url_xml }}" target="_blank" 
+                                   class="btn btn-outline-primary" 
+                                   data-bs-toggle="tooltip" title="Baixar XML">
+                                    <i class="bi bi-file-code"></i>
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#detailModal{{ nota.pk }}"
+                                        title="Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-0">Nenhuma NFSe processada encontrada</p>
+                            {% if request.GET %}
+                            <a href="{% url 'nfse:processada_list' %}" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modals de Detalhe -->
+{% for nota in notas %}
+<div class="modal fade" id="detailModal{{ nota.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes NFSe {{ nota.numero }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2">Dados Fiscais</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Número</dt>
+                            <dd class="col-sm-7">{{ nota.numero }}</dd>
+
+                            <dt class="col-sm-5">Série</dt>
+                            <dd class="col-sm-7">{{ nota.serie|default:"-" }}</dd>
+
+                            <dt class="col-sm-5">Chave</dt>
+                            <dd class="col-sm-7"><code class="small">{{ nota.chave }}</code></dd>
+
+                            <dt class="col-sm-5">Protocolo</dt>
+                            <dd class="col-sm-7">{{ nota.protocolo }}</dd>
+
+                            <dt class="col-sm-5">cStat</dt>
+                            <dd class="col-sm-7">
+                                <span class="badge bg-success">{{ nota.c_stat }}</span>
+                            </dd>
+
+                            <dt class="col-sm-5">Mensagem</dt>
+                            <dd class="col-sm-7">{{ nota.mensagem }}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2">Datas e Valores</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Emissão</dt>
+                            <dd class="col-sm-7">{{ nota.data_emissao|date:"d/m/Y" }}</dd>
+
+                            <dt class="col-sm-5">Autorização</dt>
+                            <dd class="col-sm-7">{{ nota.data_autorizacao|date:"d/m/Y" }}</dd>
+
+                            <dt class="col-sm-5">Valor Total</dt>
+                            <dd class="col-sm-7"><strong class="text-success">R$ {{ nota.valor|floatformat:2 }}</strong></dd>
+
+                            <dt class="col-sm-5">ID Externo</dt>
+                            <dd class="col-sm-7"><code>{{ nota.id_externo }}</code></dd>
+
+                            <dt class="col-sm-5">Documento</dt>
+                            <dd class="col-sm-7">{{ nota.documento|upper }}</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6 class="border-bottom pb-2">Serviço Prestado</h6>
+                <p class="mb-0">{{ nota.emissao.descricao_servico }}</p>
+
+                <hr>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    {% if nota.url_pdf %}
+                    <a href="{{ nota.url_pdf }}" target="_blank" class="btn btn-danger">
+                        <i class="bi bi-file-pdf me-2"></i>Baixar PDF
+                    </a>
+                    {% endif %}
+                    {% if nota.url_xml %}
+                    <a href="{{ nota.url_xml }}" target="_blank" class="btn btn-primary">
+                        <i class="bi bi-file-code me-2"></i>Baixar XML
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ativar tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+});
+</script>
+{% endblock %}
