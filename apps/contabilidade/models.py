@@ -133,7 +133,7 @@ class Empresa(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.razao_social} ({self.cpf_cnpj})'
+        return f'{self.razao_social} ({self.cpf_cnpj})' 
 
 
 class UsuarioEmpresa(models.Model):
