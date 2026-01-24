@@ -38,8 +38,25 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Apps do projeto
+    'apps.account',
+    'apps.contabilidade',
     'apps.core',
 ]
+
+# Custom User Model
+AUTH_USER_MODEL = 'account.User'
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'apps.account.backends.EmailBackend',
+]
+
+# Login URLs
+LOGIN_URL = 'account:login'
+LOGIN_REDIRECT_URL = 'contabilidade:dashboard'
+LOGOUT_REDIRECT_URL = 'home'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

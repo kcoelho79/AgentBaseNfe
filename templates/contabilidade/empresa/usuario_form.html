@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Usuário - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{% if object %}Editar Usuário{% else %}Novo Usuário{% endif %}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_list' %}">Empresas</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_detail' empresa.pk %}">{{ empresa.razao_social|truncatechars:20 }}</a></li>
+                <li class="breadcrumb-item active">{% if object %}Editar{% else %}Novo{% endif %} Usuário</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person me-2"></i>
+                    Dados do Usuário Autorizado
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Este usuário poderá solicitar emissão de notas fiscais via WhatsApp para a empresa <strong>{{ empresa.razao_social }}</strong>.
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_nome" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                        <input type="text"
+                               class="form-control {% if form.nome.errors %}is-invalid{% endif %}"
+                               id="id_nome"
+                               name="nome"
+                               value="{{ form.nome.value|default:'' }}"
+                               placeholder="Nome do usuário"
+                               required>
+                        {% if form.nome.errors %}
+                            <div class="invalid-feedback">{{ form.nome.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_telefone" class="form-label">Telefone WhatsApp <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent">
+                                <i class="bi bi-whatsapp text-success"></i>
+                            </span>
+                            <input type="text"
+                                   class="form-control {% if form.telefone.errors %}is-invalid{% endif %}"
+                                   id="id_telefone"
+                                   name="telefone"
+                                   value="{{ form.telefone.value|default:'' }}"
+                                   placeholder="5511999999999"
+                                   required>
+                        </div>
+                        {% if form.telefone.errors %}
+                            <div class="text-danger small mt-1">{{ form.telefone.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Formato: código do país + DDD + número (ex: 5511999999999)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">E-mail</label>
+                        <input type="email"
+                               class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                               id="id_email"
+                               name="email"
+                               value="{{ form.email.value|default:'' }}"
+                               placeholder="email@exemplo.com">
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_cargo" class="form-label">Cargo</label>
+                        <input type="text"
+                               class="form-control {% if form.cargo.errors %}is-invalid{% endif %}"
+                               id="id_cargo"
+                               name="cargo"
+                               value="{{ form.cargo.value|default:'' }}"
+                               placeholder="Ex: Gerente, Diretor, Contador...">
+                        {% if form.cargo.errors %}
+                            <div class="invalid-feedback">{{ form.cargo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="id_ativo" name="ativo" {% if form.ativo.value %}checked{% endif %}>
+                            <label class="form-check-label" for="id_ativo">
+                                Usuário Ativo
+                            </label>
+                        </div>
+                        <div class="form-text">Usuários inativos não podem solicitar emissão de notas.</div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}#usuarios" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>{% if object %}Salvar{% else %}Cadastrar{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

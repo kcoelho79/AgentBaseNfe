@@ -1,0 +1,75 @@
+<nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar">
+    <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'contabilidade:dashboard' %}">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    Dashboard
+                </a>
+            </li>
+
+            <!-- Empresas -->
+            <li class="nav-item">
+                <a class="nav-link {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'contabilidade:empresa_list' %}">
+                    <i class="bi bi-building me-2"></i>
+                    Empresas
+                </a>
+            </li>
+
+            <!-- Sessoes -->
+            <li class="nav-item">
+                <a class="nav-link {% if 'sessao' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'contabilidade:sessao_list' %}">
+                    <i class="bi bi-chat-dots me-2"></i>
+                    Sessões
+                </a>
+            </li>
+
+            <!-- Notas Fiscais -->
+            <li class="nav-item">
+                <a class="nav-link {% if 'nota_fiscal' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'contabilidade:nota_fiscal_list' %}">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Notas Fiscais
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <small class="nav-link text-muted text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.1em;">
+                    Administração
+                </small>
+            </li>
+
+            <!-- Usuarios do Sistema -->
+            <li class="nav-item">
+                <a class="nav-link {% if 'usuario' in request.resolver_match.url_name and 'empresa' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'contabilidade:usuario_list' %}">
+                    <i class="bi bi-people me-2"></i>
+                    Usuários
+                </a>
+            </li>
+
+            <!-- Configuracoes -->
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-gear me-2"></i>
+                    Configurações
+                </a>
+            </li>
+        </ul>
+
+        <!-- Info Footer -->
+        <div class="mt-4 px-3">
+            <div class="card bg-transparent border-secondary">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted d-block">Contabilidade</small>
+                    <span class="text-white small">
+                        {% if user.contabilidade %}
+                            {{ user.contabilidade.nome|truncatechars:20 }}
+                        {% else %}
+                            Não vinculado
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

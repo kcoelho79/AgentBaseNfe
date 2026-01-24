@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AgentNFe - Sistema de Emissao de Notas Fiscais{% endblock %}
+
+{% block public_content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);">
+    <div class="text-center px-4">
+        <!-- Logo -->
+        <div class="mb-4">
+            <img src="{% static 'img/logo.svg' %}" alt="AgentNFe" height="60" class="mb-3">
+        </div>
+
+        <h1 class="display-4 text-white mb-3 fw-bold">AgentNFe</h1>
+        <p class="lead text-secondary mb-2">Sistema de Emissao de Notas Fiscais via WhatsApp</p>
+        <p class="text-muted mb-5">Automatize a emissao de NFSe com inteligencia artificial</p>
+
+        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mb-5">
+            <a href="{% url 'account:login' %}" class="btn btn-primary btn-lg px-5 py-3">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+            </a>
+            <a href="{% url 'account:register' %}" class="btn btn-outline-light btn-lg px-5 py-3">
+                <i class="bi bi-person-plus me-2"></i>Cadastrar-se
+            </a>
+        </div>
+
+        <p class="text-muted small">Versao 1.0.0</p>
+    </div>
+</div>
+{% endblock %}

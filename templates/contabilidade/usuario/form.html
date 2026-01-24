@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Usuário - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{% if object %}Editar Usuário{% else %}Novo Usuário{% endif %}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:usuario_list' %}">Usuários</a></li>
+                <li class="breadcrumb-item active">{% if object %}Editar{% else %}Novo{% endif %}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Dados Pessoais</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_first_name" class="form-label">Nome <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                                   id="id_first_name"
+                                   name="first_name"
+                                   value="{{ form.first_name.value|default:'' }}"
+                                   required>
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="id_last_name" class="form-label">Sobrenome <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                                   id="id_last_name"
+                                   name="last_name"
+                                   value="{{ form.last_name.value|default:'' }}"
+                                   required>
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">E-mail <span class="text-danger">*</span></label>
+                        <input type="email"
+                               class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                               id="id_email"
+                               name="email"
+                               value="{{ form.email.value|default:'' }}"
+                               {% if object %}readonly{% endif %}
+                               required>
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                        {% if object %}
+                            <div class="form-text">O e-mail não pode ser alterado.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_phone" class="form-label">Telefone</label>
+                        <input type="text"
+                               class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
+                               id="id_phone"
+                               name="phone"
+                               value="{{ form.phone.value|default:'' }}"
+                               placeholder="(00) 00000-0000">
+                        {% if form.phone.errors %}
+                            <div class="invalid-feedback">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Acesso e Permissões</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="id_role" class="form-label">Função <span class="text-danger">*</span></label>
+                        <select class="form-select {% if form.role.errors %}is-invalid{% endif %}"
+                                id="id_role"
+                                name="role"
+                                required>
+                            <option value="atendente" {% if form.role.value == 'atendente' %}selected{% endif %}>Atendente</option>
+                            <option value="gerente" {% if form.role.value == 'gerente' %}selected{% endif %}>Gerente</option>
+                            <option value="admin" {% if form.role.value == 'admin' %}selected{% endif %}>Administrador</option>
+                        </select>
+                        {% if form.role.errors %}
+                            <div class="invalid-feedback">{{ form.role.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            <strong>Atendente:</strong> Acesso básico para visualização<br>
+                            <strong>Gerente:</strong> Pode gerenciar empresas e notas<br>
+                            <strong>Administrador:</strong> Acesso total ao sistema
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+                            <label class="form-check-label" for="id_is_active">
+                                Usuário Ativo
+                            </label>
+                        </div>
+                        <div class="form-text">Usuários inativos não podem acessar o sistema.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-key me-2"></i>Senha</h5>
+                </div>
+                <div class="card-body">
+                    {% if object %}
+                    <p class="text-muted small mb-3">Deixe em branco para manter a senha atual.</p>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_password1" class="form-label">
+                                {% if object %}Nova Senha{% else %}Senha <span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <input type="password"
+                                   class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                                   id="id_password1"
+                                   name="password1"
+                                   {% if not object %}required{% endif %}>
+                            {% if form.password1.errors %}
+                                <div class="invalid-feedback">{{ form.password1.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="id_password2" class="form-label">
+                                {% if object %}Confirmar Nova Senha{% else %}Confirmar Senha <span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <input type="password"
+                                   class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                                   id="id_password2"
+                                   name="password2"
+                                   {% if not object %}required{% endif %}>
+                            {% if form.password2.errors %}
+                                <div class="invalid-feedback">{{ form.password2.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{% url 'contabilidade:usuario_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-2"></i>{% if object %}Salvar Alterações{% else %}Criar Usuário{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

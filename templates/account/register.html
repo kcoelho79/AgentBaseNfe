@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cadastro - AgentNFe{% endblock %}
+
+{% block public_content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" style="background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);">
+    <div class="auth-card" style="max-width: 500px;">
+        <div class="card-header">
+            <img src="{% static 'img/logo.svg' %}" alt="AgentNFe" height="40" class="mb-2">
+            <h4>Criar Conta</h4>
+        </div>
+        <div class="card-body p-4">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-building me-1"></i> Dados da Contabilidade
+                </p>
+
+                <div class="mb-3">
+                    <label for="id_contabilidade_razao_social" class="form-label">Razão Social da Contabilidade</label>
+                    <input type="text"
+                           class="form-control {% if form.contabilidade_razao_social.errors %}is-invalid{% endif %}"
+                           id="id_contabilidade_razao_social"
+                           name="contabilidade_razao_social"
+                           value="{{ form.contabilidade_razao_social.value|default:'' }}"
+                           placeholder="Razão social da sua contabilidade"
+                           required>
+                    {% if form.contabilidade_razao_social.errors %}
+                        <div class="invalid-feedback">{{ form.contabilidade_razao_social.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_contabilidade_cnpj" class="form-label">CNPJ</label>
+                    <input type="text"
+                           class="form-control {% if form.contabilidade_cnpj.errors %}is-invalid{% endif %}"
+                           id="id_contabilidade_cnpj"
+                           name="contabilidade_cnpj"
+                           value="{{ form.contabilidade_cnpj.value|default:'' }}"
+                           placeholder="00.000.000/0000-00"
+                           required>
+                    {% if form.contabilidade_cnpj.errors %}
+                        <div class="invalid-feedback">{{ form.contabilidade_cnpj.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4 border-secondary">
+
+                <p class="text-muted small mb-3">
+                    <i class="bi bi-person me-1"></i> Dados do Administrador
+                </p>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_first_name" class="form-label">Nome</label>
+                        <input type="text"
+                               class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                               id="id_first_name"
+                               name="first_name"
+                               value="{{ form.first_name.value|default:'' }}"
+                               placeholder="Seu nome"
+                               required>
+                        {% if form.first_name.errors %}
+                            <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="id_last_name" class="form-label">Sobrenome</label>
+                        <input type="text"
+                               class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                               id="id_last_name"
+                               name="last_name"
+                               value="{{ form.last_name.value|default:'' }}"
+                               placeholder="Seu sobrenome"
+                               required>
+                        {% if form.last_name.errors %}
+                            <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_email" class="form-label">E-mail</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-envelope text-muted"></i>
+                        </span>
+                        <input type="email"
+                               class="form-control border-start-0 {% if form.email.errors %}is-invalid{% endif %}"
+                               id="id_email"
+                               name="email"
+                               value="{{ form.email.value|default:'' }}"
+                               placeholder="seu@email.com"
+                               required>
+                    </div>
+                    {% if form.email.errors %}
+                        <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_phone" class="form-label">Telefone</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-phone text-muted"></i>
+                        </span>
+                        <input type="text"
+                               class="form-control border-start-0 {% if form.phone.errors %}is-invalid{% endif %}"
+                               id="id_phone"
+                               name="phone"
+                               value="{{ form.phone.value|default:'' }}"
+                               placeholder="(00) 00000-0000">
+                    </div>
+                    {% if form.phone.errors %}
+                        <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_password" class="form-label">Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-lock text-muted"></i>
+                        </span>
+                        <input type="password"
+                               class="form-control border-start-0 {% if form.password.errors %}is-invalid{% endif %}"
+                               id="id_password"
+                               name="password"
+                               placeholder="Mínimo 8 caracteres"
+                               required>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_password_confirm" class="form-label">Confirmar Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-lock-fill text-muted"></i>
+                        </span>
+                        <input type="password"
+                               class="form-control border-start-0 {% if form.password_confirm.errors %}is-invalid{% endif %}"
+                               id="id_password_confirm"
+                               name="password_confirm"
+                               placeholder="Repita a senha"
+                               required>
+                    </div>
+                    {% if form.password_confirm.errors %}
+                        <div class="text-danger small mt-1">{{ form.password_confirm.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+                    <i class="bi bi-person-plus me-2"></i>Criar Conta
+                </button>
+
+                <p class="text-center text-muted mb-0">
+                    Já tem uma conta?
+                    <a href="{% url 'account:login' %}" class="text-primary">Entrar</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

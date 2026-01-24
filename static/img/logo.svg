@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="10" width="30" height="30" rx="6" fill="url(#gradient)"/>
+  <path d="M12 25 L18 31 L28 19" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="45" y="33" font-family="Inter, sans-serif" font-size="24" font-weight="700" fill="url(#gradient)">AgentNFe</text>
+</svg>

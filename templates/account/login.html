@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - AgentNFe{% endblock %}
+
+{% block public_content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);">
+    <div class="auth-card">
+        <div class="card-header">
+            <img src="{% static 'img/logo.svg' %}" alt="AgentNFe" height="40" class="mb-2">
+            <h4>Entrar</h4>
+        </div>
+        <div class="card-body p-4">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="id_email" class="form-label">E-mail</label>
+                    <input type="email"
+                           class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                           id="id_email"
+                           name="email"
+                           value="{{ form.email.value|default:'' }}"
+                           placeholder="seu@email.com"
+                           autofocus
+                           required>
+                    {% if form.email.errors %}
+                        <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_password" class="form-label">Senha</label>
+                    <input type="password"
+                           class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                           id="id_password"
+                           name="password"
+                           placeholder="Sua senha"
+                           required>
+                    {% if form.password.errors %}
+                        <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label text-muted small" for="remember">Lembrar-me</label>
+                    </div>
+                    <a href="#" class="text-muted small">Esqueci a senha</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+                </button>
+
+                <p class="text-center text-muted mb-0">
+                    Não tem uma conta?
+                    <a href="{% url 'account:register' %}" class="text-primary">Cadastre-se</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

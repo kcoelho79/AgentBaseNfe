@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Perfil - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Meu Perfil</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Meu Perfil</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center py-5">
+                <div class="rounded-circle bg-gradient-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
+                    <span class="text-white fw-bold" style="font-size: 2.5rem;">
+                        {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+                    </span>
+                </div>
+                <h4 class="mb-1">{{ user.get_full_name|default:user.email }}</h4>
+                <p class="text-muted mb-3">{{ user.get_role_display }}</p>
+
+                {% if user.contabilidade %}
+                <div class="border-top border-secondary pt-3 mt-3">
+                    <small class="text-muted d-block mb-1">Contabilidade</small>
+                    <span class="text-white">{{ user.contabilidade.nome }}</span>
+                </div>
+                {% endif %}
+
+                <div class="border-top border-secondary pt-3 mt-3">
+                    <small class="text-muted d-block mb-1">Membro desde</small>
+                    <span class="text-white">{{ user.date_joined|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i>Editar Perfil</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_first_name" class="form-label">Nome</label>
+                            <input type="text"
+                                   class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                                   id="id_first_name"
+                                   name="first_name"
+                                   value="{{ form.first_name.value|default:'' }}">
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="id_last_name" class="form-label">Sobrenome</label>
+                            <input type="text"
+                                   class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                                   id="id_last_name"
+                                   name="last_name"
+                                   value="{{ form.last_name.value|default:'' }}">
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">E-mail</label>
+                        <input type="email"
+                               class="form-control"
+                               id="id_email"
+                               value="{{ user.email }}"
+                               disabled>
+                        <div class="form-text">O e-mail não pode ser alterado.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_phone" class="form-label">Telefone</label>
+                        <input type="text"
+                               class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
+                               id="id_phone"
+                               name="phone"
+                               value="{{ form.phone.value|default:'' }}"
+                               placeholder="(00) 00000-0000">
+                        {% if form.phone.errors %}
+                            <div class="invalid-feedback">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4 border-secondary">
+
+                    <h6 class="text-muted mb-3">Alterar Senha</h6>
+                    <p class="text-muted small mb-3">Deixe em branco para manter a senha atual.</p>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_password1" class="form-label">Nova Senha</label>
+                            <input type="password"
+                                   class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                                   id="id_password1"
+                                   name="password1"
+                                   placeholder="Nova senha">
+                            {% if form.password1.errors %}
+                                <div class="invalid-feedback">{{ form.password1.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="id_password2" class="form-label">Confirmar Nova Senha</label>
+                            <input type="password"
+                                   class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                                   id="id_password2"
+                                   name="password2"
+                                   placeholder="Confirme a senha">
+                            {% if form.password2.errors %}
+                                <div class="invalid-feedback">{{ form.password2.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

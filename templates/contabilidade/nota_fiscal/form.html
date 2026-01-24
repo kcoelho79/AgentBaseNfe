@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Emitir Nota Fiscal - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Emitir Nota Fiscal</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:nota_fiscal_list' %}">Notas Fiscais</a></li>
+                <li class="breadcrumb-item active">Emitir</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Prestador -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-building me-2"></i>Prestador do Serviço</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="id_empresa" class="form-label">Empresa <span class="text-danger">*</span></label>
+                        <select class="form-select {% if form.empresa.errors %}is-invalid{% endif %}"
+                                id="id_empresa"
+                                name="empresa"
+                                required>
+                            <option value="">Selecione a empresa...</option>
+                            {% for emp in empresas %}
+                            <option value="{{ emp.pk }}" {% if form.empresa.value == emp.pk|stringformat:"i" %}selected{% endif %}>
+                                {{ emp.cpf_cnpj }} - {{ emp.razao_social }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.empresa.errors %}
+                            <div class="invalid-feedback">{{ form.empresa.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tomador -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Tomador do Serviço</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="id_tomador_cnpj" class="form-label">CNPJ/CPF <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control {% if form.tomador_cnpj.errors %}is-invalid{% endif %}"
+                                   id="id_tomador_cnpj"
+                                   name="tomador_cnpj"
+                                   value="{{ form.tomador_cnpj.value|default:'' }}"
+                                   placeholder="00.000.000/0000-00"
+                                   required>
+                            {% if form.tomador_cnpj.errors %}
+                                <div class="invalid-feedback">{{ form.tomador_cnpj.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label for="id_tomador_razao_social" class="form-label">Razão Social</label>
+                            <input type="text"
+                                   class="form-control {% if form.tomador_razao_social.errors %}is-invalid{% endif %}"
+                                   id="id_tomador_razao_social"
+                                   name="tomador_razao_social"
+                                   value="{{ form.tomador_razao_social.value|default:'' }}">
+                            {% if form.tomador_razao_social.errors %}
+                                <div class="invalid-feedback">{{ form.tomador_razao_social.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_tomador_email" class="form-label">E-mail</label>
+                        <input type="email"
+                               class="form-control {% if form.tomador_email.errors %}is-invalid{% endif %}"
+                               id="id_tomador_email"
+                               name="tomador_email"
+                               value="{{ form.tomador_email.value|default:'' }}"
+                               placeholder="email@exemplo.com">
+                        {% if form.tomador_email.errors %}
+                            <div class="invalid-feedback">{{ form.tomador_email.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">A nota será enviada para este e-mail após emissão.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Servico -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Dados do Serviço</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="id_valor" class="form-label">Valor do Serviço <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent">R$</span>
+                                <input type="text"
+                                       class="form-control {% if form.valor.errors %}is-invalid{% endif %}"
+                                       id="id_valor"
+                                       name="valor"
+                                       value="{{ form.valor.value|default:'' }}"
+                                       placeholder="0,00"
+                                       required>
+                            </div>
+                            {% if form.valor.errors %}
+                                <div class="text-danger small mt-1">{{ form.valor.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="id_codigo_servico" class="form-label">Código do Serviço</label>
+                            <input type="text"
+                                   class="form-control {% if form.codigo_servico.errors %}is-invalid{% endif %}"
+                                   id="id_codigo_servico"
+                                   name="codigo_servico"
+                                   value="{{ form.codigo_servico.value|default:'' }}"
+                                   placeholder="Ex: 1.02">
+                            {% if form.codigo_servico.errors %}
+                                <div class="invalid-feedback">{{ form.codigo_servico.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="id_aliquota_iss" class="form-label">Alíquota ISS (%)</label>
+                            <input type="text"
+                                   class="form-control {% if form.aliquota_iss.errors %}is-invalid{% endif %}"
+                                   id="id_aliquota_iss"
+                                   name="aliquota_iss"
+                                   value="{{ form.aliquota_iss.value|default:'' }}"
+                                   placeholder="Ex: 5.00">
+                            {% if form.aliquota_iss.errors %}
+                                <div class="invalid-feedback">{{ form.aliquota_iss.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_descricao" class="form-label">Descrição do Serviço <span class="text-danger">*</span></label>
+                        <textarea class="form-control {% if form.descricao.errors %}is-invalid{% endif %}"
+                                  id="id_descricao"
+                                  name="descricao"
+                                  rows="4"
+                                  placeholder="Descreva detalhadamente o serviço prestado..."
+                                  required>{{ form.descricao.value|default:'' }}</textarea>
+                        {% if form.descricao.errors %}
+                            <div class="invalid-feedback">{{ form.descricao.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Resumo -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Resumo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Valor do Serviço</span>
+                        <span id="resumo-valor">R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">ISS</span>
+                        <span id="resumo-iss">R$ 0,00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Valor Líquido</strong>
+                        <strong id="resumo-liquido">R$ 0,00</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Origem -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Origem</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Emissão</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="origem" id="origem_manual" value="manual" checked>
+                            <label class="form-check-label" for="origem_manual">
+                                Emissão Manual
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="origem" id="origem_whatsapp" value="whatsapp" disabled>
+                            <label class="form-check-label text-muted" for="origem_whatsapp">
+                                Via WhatsApp (automático)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-2"></i>Emitir Nota Fiscal
+                        </button>
+                        <a href="{% url 'contabilidade:nota_fiscal_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CNPJ/CPF mask
+document.getElementById('id_tomador_cnpj').addEventListener('input', function(e) {
+    var value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    e.target.value = value.substring(0, 18);
+});
+
+// Currency mask for valor
+document.getElementById('id_valor').addEventListener('input', function(e) {
+    var value = e.target.value.replace(/\D/g, '');
+    value = (parseInt(value) / 100).toFixed(2);
+    value = value.replace('.', ',');
+    value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    e.target.value = value;
+    updateResumo();
+});
+
+// Update resumo
+function updateResumo() {
+    var valorStr = document.getElementById('id_valor').value || '0';
+    var valor = parseFloat(valorStr.replace(/\./g, '').replace(',', '.')) || 0;
+
+    var aliquotaStr = document.getElementById('id_aliquota_iss').value || '0';
+    var aliquota = parseFloat(aliquotaStr.replace(',', '.')) || 0;
+
+    var iss = valor * (aliquota / 100);
+    var liquido = valor - iss;
+
+    document.getElementById('resumo-valor').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
+    document.getElementById('resumo-iss').textContent = 'R$ ' + iss.toFixed(2).replace('.', ',');
+    document.getElementById('resumo-liquido').textContent = 'R$ ' + liquido.toFixed(2).replace('.', ',');
+}
+
+document.getElementById('id_aliquota_iss').addEventListener('input', updateResumo);
+</script>
+{% endblock %}

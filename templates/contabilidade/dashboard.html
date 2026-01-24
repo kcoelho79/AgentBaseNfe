@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Dashboard</h1>
+        <p class="text-muted mb-0">Bem-vindo, {{ user.first_name|default:user.email }}!</p>
+    </div>
+    <div>
+        <span class="badge bg-info">
+            <i class="bi bi-calendar3 me-1"></i>
+            {{ hoje|date:"d/m/Y" }}
+        </span>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="metric-label mb-1">Empresas</p>
+                    <h3 class="metric-value mb-0">{{ total_empresas }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-25 rounded p-2">
+                    <i class="bi bi-building fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="metric-label mb-1">Notas Emitidas</p>
+                    <h3 class="metric-value mb-0">{{ total_notas }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-25 rounded p-2">
+                    <i class="bi bi-file-earmark-check fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card info">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="metric-label mb-1">Sessões Ativas</p>
+                    <h3 class="metric-value mb-0">{{ sessoes_ativas }}</h3>
+                </div>
+                <div class="bg-white bg-opacity-25 rounded p-2">
+                    <i class="bi bi-chat-dots fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="metric-label mb-1">Certificados</p>
+                    <h3 class="metric-value mb-0">{{ certificados_expirando }}</h3>
+                    <small class="opacity-75">expirando em 30 dias</small>
+                </div>
+                <div class="bg-white bg-opacity-25 rounded p-2">
+                    <i class="bi bi-shield-exclamation fs-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Sessions -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Sessões Recentes</h5>
+                <a href="{% url 'contabilidade:sessao_list' %}" class="btn btn-sm btn-outline-primary">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Telefone</th>
+                                <th>Empresa</th>
+                                <th>Estado</th>
+                                <th>Atualização</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sessao in sessoes_recentes %}
+                            <tr>
+                                <td>{{ sessao.telefone }}</td>
+                                <td>{{ sessao.empresa.razao_social|truncatechars:25 }}</td>
+                                <td>
+                                    <span class="badge {% if sessao.estado == 'processando' %}bg-success{% elif sessao.estado == 'aguardando_confirmacao' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                        {{ sessao.estado }}
+                                    </span>
+                                </td>
+                                <td>{{ sessao.updated_at|timesince }} atrás</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Nenhuma sessão encontrada
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Ações Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="{% url 'contabilidade:empresa_create' %}" class="btn btn-outline-primary text-start">
+                        <i class="bi bi-building-add me-2"></i>Nova Empresa
+                    </a>
+                    <a href="{% url 'contabilidade:nota_fiscal_create' %}" class="btn btn-outline-success text-start">
+                        <i class="bi bi-file-earmark-plus me-2"></i>Emitir Nota Fiscal
+                    </a>
+                    <a href="{% url 'contabilidade:usuario_create' %}" class="btn btn-outline-info text-start">
+                        <i class="bi bi-person-plus me-2"></i>Novo Usuário
+                    </a>
+                </div>
+
+                <hr class="my-4 border-secondary">
+
+                <h6 class="text-muted mb-3">Certificados Expirando</h6>
+                {% if certificados_lista %}
+                    {% for cert in certificados_lista %}
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <small class="text-white d-block">{{ cert.empresa.razao_social|truncatechars:20 }}</small>
+                            <small class="text-muted">Expira: {{ cert.data_validade|date:"d/m/Y" }}</small>
+                        </div>
+                        <span class="badge bg-warning">{{ cert.dias_para_expirar }} dias</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Nenhum certificado expirando
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Usuários - {{ empresa.razao_social }} - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Usuários Autorizados</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_list' %}">Empresas</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_detail' empresa.pk %}">{{ empresa.razao_social|truncatechars:20 }}</a></li>
+                <li class="breadcrumb-item active">Usuários</li>
+            </ol>
+        </nav>
+    </div>
+    <a href="{% url 'contabilidade:usuario_empresa_create' empresa.pk %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>Novo Usuário
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-people me-2"></i>
+            Usuários de {{ empresa.razao_social }}
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone (WhatsApp)</th>
+                        <th>E-mail</th>
+                        <th>CPF</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>{{ usuario.nome }}</td>
+                        <td>
+                            <i class="bi bi-whatsapp text-success me-1"></i>
+                            <code>{{ usuario.telefone }}</code>
+                        </td>
+                        <td>{{ usuario.email|default:"-" }}</td>
+                        <td>{{ usuario.cpf|default:"-" }}</td>
+                        <td>
+                            {% if usuario.is_active %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'contabilidade:usuario_empresa_update' empresa.pk usuario.pk %}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'contabilidade:usuario_empresa_delete' empresa.pk usuario.pk %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Excluir" data-confirm="Tem certeza que deseja excluir este usuário?">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-people fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-3">Nenhum usuário cadastrado para esta empresa</p>
+                            <a href="{% url 'contabilidade:usuario_empresa_create' empresa.pk %}" class="btn btn-primary">
+                                <i class="bi bi-plus-lg me-2"></i>Cadastrar Usuário
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Voltar para Empresa
+    </a>
+</div>
+{% endblock %}

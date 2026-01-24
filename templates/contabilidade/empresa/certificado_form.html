@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Certificado - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{% if object %}Editar Certificado{% else %}Novo Certificado{% endif %}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_list' %}">Empresas</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:empresa_detail' empresa.pk %}">{{ empresa.razao_social|truncatechars:20 }}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:certificado_list' empresa.pk %}">Certificados</a></li>
+                <li class="breadcrumb-item active">{% if object %}Editar{% else %}Novo{% endif %}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    Certificado Digital
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle me-2"></i>
+                    O certificado digital será utilizado para assinar as notas fiscais da empresa <strong>{{ empresa.razao_social }}</strong>.
+                </div>
+
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger mb-4">
+                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Corrija os erros abaixo:</h6>
+                        <ul class="mb-0">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="id_arquivo" class="form-label">Arquivo do Certificado (.pfx) {% if not object %}<span class="text-danger">*</span>{% endif %}</label>
+                        {{ form.arquivo }}
+                        {% if form.arquivo.errors %}
+                            <div class="text-danger small mt-1">{{ form.arquivo.errors.0 }}</div>
+                        {% endif %}
+                        {% if object and object.arquivo %}
+                            <div class="form-text">
+                                <i class="bi bi-file-earmark-lock text-success me-1"></i>
+                                Arquivo atual: {{ object.arquivo.name|cut:"certificados/" }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_senha" class="form-label">Senha do Certificado {% if not object %}<span class="text-danger">*</span>{% endif %}</label>
+                        <div class="input-group">
+                            {{ form.senha }}
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                        {% if form.senha.errors %}
+                            <div class="text-danger small mt-1">{{ form.senha.errors.0 }}</div>
+                        {% endif %}
+                        {% if object %}
+                            <div class="form-text">Deixe em branco para manter a senha atual.</div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_nome_titular" class="form-label">Nome do Titular</label>
+                            {{ form.nome_titular }}
+                            {% if form.nome_titular.errors %}
+                                <div class="text-danger small mt-1">{{ form.nome_titular.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_cnpj_titular" class="form-label">CNPJ do Titular</label>
+                            {{ form.cnpj_titular }}
+                            {% if form.cnpj_titular.errors %}
+                                <div class="text-danger small mt-1">{{ form.cnpj_titular.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_validade" class="form-label">Data de Validade</label>
+                        {{ form.validade }}
+                        {% if form.validade.errors %}
+                            <div class="text-danger small mt-1">{{ form.validade.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="id_is_active">
+                                Certificado Ativo
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'contabilidade:certificado_list' empresa.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>{% if object %}Salvar{% else %}Cadastrar{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword() {
+    var input = document.getElementById('id_senha');
+    var icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+</script>
+{% endblock %}

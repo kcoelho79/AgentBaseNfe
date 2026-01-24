@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Sessões - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Sessões</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Sessões</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small text-muted">Telefone</label>
+                <input type="text" class="form-control" name="telefone" value="{{ request.GET.telefone }}" placeholder="Buscar por telefone...">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Estado</label>
+                <select class="form-select" name="estado">
+                    <option value="">Todos</option>
+                    {% for valor, nome in estados %}
+                    <option value="{{ valor }}" {% if estado_selecionado == valor %}selected{% endif %}>{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search me-1"></i>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sessions Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID Sessão</th>
+                        <th>Telefone</th>
+                        <th>Estado</th>
+                        <th>Interações</th>
+                        <th>CNPJ</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sessao in sessoes %}
+                    <tr>
+                        <td><code class="text-primary">{{ sessao.sessao_id|truncatechars:15 }}</code></td>
+                        <td>
+                            <i class="bi bi-whatsapp text-success me-1"></i>
+                            {{ sessao.telefone }}
+                        </td>
+                        <td>
+                            {% if sessao.estado == 'processando' %}
+                                <span class="badge bg-success">Processando</span>
+                            {% elif sessao.estado == 'aguardando_confirmacao' %}
+                                <span class="badge bg-warning">Aguardando</span>
+                            {% elif sessao.estado == 'coleta' %}
+                                <span class="badge bg-info">Coleta</span>
+                            {% elif sessao.estado == 'dados_incompletos' %}
+                                <span class="badge bg-secondary">Incompleto</span>
+                            {% elif sessao.estado == 'cancelado_usuario' %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% elif sessao.estado == 'erro' %}
+                                <span class="badge bg-danger">Erro</span>
+                            {% elif sessao.estado == 'expirado' %}
+                                <span class="badge bg-secondary">Expirado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ sessao.estado }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ sessao.interaction_count }} msgs</span>
+                        </td>
+                        <td>
+                            {% if sessao.cnpj %}
+                                <code>{{ sessao.cnpj }}</code>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span data-bs-toggle="tooltip" title="{{ sessao.session_created_at|date:'d/m/Y H:i:s' }}">
+                                {{ sessao.session_created_at|timesince }} atrás
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-chat-dots fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-0">Nenhuma sessão encontrada</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

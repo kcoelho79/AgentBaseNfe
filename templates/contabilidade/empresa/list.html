@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Empresas - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Empresas</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Empresas</li>
+            </ol>
+        </nav>
+    </div>
+    <a href="{% url 'contabilidade:empresa_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>Nova Empresa
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small text-muted">Buscar</label>
+                <input type="text" class="form-control" name="search" value="{{ request.GET.search }}" placeholder="CNPJ, Razão Social...">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">Todos</option>
+                    <option value="1" {% if request.GET.status == '1' %}selected{% endif %}>Ativo</option>
+                    <option value="0" {% if request.GET.status == '0' %}selected{% endif %}>Inativo</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search me-1"></i>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>CNPJ</th>
+                        <th>Razão Social</th>
+                        <th>Cidade/UF</th>
+                        <th>Regime</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr>
+                        <td>
+                            <code class="text-primary">{{ empresa.cpf_cnpj }}</code>
+                        </td>
+                        <td>
+                            <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="text-white text-decoration-none">
+                                {{ empresa.razao_social|truncatechars:40 }}
+                            </a>
+                            {% if empresa.nome_fantasia %}
+                            <br><small class="text-muted">{{ empresa.nome_fantasia|truncatechars:35 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ empresa.descricao_cidade|default:"-" }}/{{ empresa.estado|default:"-" }}</td>
+                        <td>
+                            {% if empresa.regime_tributario == 1 %}
+                                <span class="badge bg-success">Simples</span>
+                            {% elif empresa.regime_tributario == 2 %}
+                                <span class="badge bg-info">Simples Excesso</span>
+                            {% elif empresa.regime_tributario == 3 %}
+                                <span class="badge bg-warning">Normal</span>
+                            {% else %}
+                                <span class="badge bg-secondary">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.is_active %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Visualizar">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'contabilidade:empresa_update' empresa.pk %}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'contabilidade:empresa_delete' empresa.pk %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Excluir" data-confirm="Tem certeza que deseja excluir esta empresa?">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-building fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-3">Nenhuma empresa cadastrada</p>
+                            <a href="{% url 'contabilidade:empresa_create' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-lg me-2"></i>Cadastrar Empresa
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
