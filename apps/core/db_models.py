@@ -184,6 +184,16 @@ class SessionSnapshot(models.Model):
         null=True,
         verbose_name='Mensagem ao Usuário'
     )
+    
+    # Integração NFSe
+    id_integracao = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        unique=True,
+        db_index=True,
+        verbose_name='ID Integração NFSe'
+    )
 
     # TTL e Expiração
     ttl = models.PositiveIntegerField(

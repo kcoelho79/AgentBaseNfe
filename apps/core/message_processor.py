@@ -133,7 +133,16 @@ class MessageProcessor:
             # Salvar sessão com estado final (confirmed)
             self.session_manager.save_session(session, reason='confirmed')
 
-            return self.response_builder.build_confirmacao_processando(session.sessao_id)
+            # ✅ NOVO: Disparar emissão de NFSe
+            try:
+                from apps.nfse.services.emissao import NFSeEmissaoService
+                logger.info("Iniciando emissão de NFSe", extra={'sessao_id': session.sessao_id})
+                nfse = NFSeEmissaoService.emitir_de_sessao(session.sessao_id)
+                logger.info(f"NFSe emitida com sucesso: {nfse.numero}", extra={'sessao_id': session.sessao_id})
+                return self.response_builder.build_nfse_emitida(nfse)
+            except Exception as e:
+                logger.exception("Erro ao emitir NFSe", extra={'sessao_id': session.sessao_id})
+                return "❌ Erro ao processar emissão da nota fiscal. Nossa equipe foi notificada e entrará em contato."
 
         # CANCELOU
         elif msg_normalizada in ['não', 'nao', 'n', 'cancelar', 'cancela']:

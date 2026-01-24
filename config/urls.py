@@ -18,6 +18,7 @@ urlpatterns = [
     # Apps
     path('account/', include('apps.account.urls', namespace='account')),
     path('app/', include('apps.contabilidade.urls', namespace='contabilidade')),
+    path('nfse/', include('apps.nfse.urls', namespace='nfse')),
 
     # API existente (core)
     path('chat/', core_views.chat_local, name='chat'),

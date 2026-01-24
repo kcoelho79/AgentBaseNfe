@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.account',
     'apps.contabilidade',
     'apps.core',
+    'apps.nfse',
 ]
 
 # Custom User Model

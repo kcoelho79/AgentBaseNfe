@@ -154,6 +154,31 @@ Valor
 Descrição
 
 Envie uma nova mensagem quando precisar emitir uma nota."""
+    
+    def build_nfse_emitida(self, nfse) -> str:
+        """
+        Mensagem de NFSe emitida com sucesso.
+        
+        Args:
+            nfse: Instância de NFSeProcessada
+            
+        Returns:
+            Mensagem formatada
+        """
+        return f"""✅ *NOTA FISCAL EMITIDA COM SUCESSO!*
+
+📄 *Número:* {nfse.numero}
+📅 *Emissão:* {nfse.data_emissao.strftime('%d/%m/%Y')}
+💰 *Valor:* R$ {nfse.valor:,.2f}
+
+🔑 *Chave:* {nfse.chave}
+📋 *Protocolo:* {nfse.protocolo}
+
+📥 *Links para Download:*
+• PDF: {nfse.url_pdf}
+• XML: {nfse.url_xml}
+
+✨ Obrigado por utilizar nossos serviços!"""
 
     def build_expirado(self) -> str:
         """
