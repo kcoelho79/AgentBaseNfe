@@ -42,6 +42,7 @@ class NFSeEmissaoService:
             ValueError: Se dados inválidos
             Exception: Erros no processo
         """
+        logger.info(f"{50 * '='} INÍCIO EMISSÃO NFSe {50 * '='}\n")
         logger.info(f"Iniciando emissão de NFSe para sessão {sessao_id}")
         
         # 1. Buscar sessão
@@ -112,6 +113,8 @@ class NFSeEmissaoService:
         emissao.save()
         
         logger.info(f"Emissão concluída: NFSe {nfse.numero}")
+        logger.info(f"{50 * '='} FIM EMISSÃO NFSe {50 * '='}\n")
+
         return nfse
     
     @classmethod

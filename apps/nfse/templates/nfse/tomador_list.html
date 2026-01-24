@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes Tomadores - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Clientes Tomadores</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Clientes Tomadores</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+{% if total_tomadores > 0 %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-people-fill fs-1 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="text-muted small">Total de Clientes</div>
+                        <div class="h4 mb-0">{{ total_tomadores }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- CNPJ -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">CNPJ</label>
+                <input type="text" class="form-control form-control-sm" name="cnpj" 
+                       placeholder="00.000.000/0000-00" value="{{ request.GET.cnpj }}"
+                       maxlength="18">
+            </div>
+
+            <!-- Razão Social / Nome Fantasia -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Razão Social / Nome Fantasia</label>
+                <input type="text" class="form-control form-control-sm" name="razao_social" 
+                       placeholder="Digite o nome" value="{{ request.GET.razao_social }}">
+            </div>
+
+            <!-- Cidade -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Cidade</label>
+                <input type="text" class="form-control form-control-sm" name="cidade" 
+                       placeholder="Cidade" value="{{ request.GET.cidade }}">
+            </div>
+
+            <!-- Estado -->
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Estado</label>
+                <select class="form-select form-select-sm" name="estado">
+                    <option value="">Todos</option>
+                    {% for uf in estados %}
+                    <option value="{{ uf }}" {% if request.GET.estado == uf %}selected{% endif %}>
+                        {{ uf }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Botões -->
+            <div class="col-md-2">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-outline-primary flex-grow-1">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'nfse:tomador_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resumo -->
+{% if tomadores.exists %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    Encontrados <strong>{{ paginator.count }}</strong> clientes tomadores
+</div>
+{% endif %}
+
+<!-- Tabela -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-building me-2"></i>
+            Lista de Clientes
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>CNPJ</th>
+                        <th>Razão Social</th>
+                        <th>Cidade/UF</th>
+                        <th>Contato</th>
+                        <th>Inscrições</th>
+                        <th class="text-center">NFSe</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tomador in tomadores %}
+                    <tr>
+                        <td>
+                            <code>{{ tomador.cnpj }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ tomador.razao_social|truncatechars:35 }}</strong>
+                            {% if tomador.nome_fantasia %}
+                            <small class="d-block text-muted">
+                                {{ tomador.nome_fantasia|truncatechars:30 }}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span>{{ tomador.cidade }}</span>
+                            <span class="badge bg-secondary ms-1">{{ tomador.estado }}</span>
+                        </td>
+                        <td>
+                            {% if tomador.email %}
+                            <small class="d-block">
+                                <i class="bi bi-envelope me-1"></i>{{ tomador.email|truncatechars:25 }}
+                            </small>
+                            {% endif %}
+                            {% if tomador.telefone %}
+                            <small class="d-block text-muted">
+                                <i class="bi bi-telephone me-1"></i>{{ tomador.telefone }}
+                            </small>
+                            {% endif %}
+                            {% if not tomador.email and not tomador.telefone %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tomador.inscricao_municipal %}
+                            <small class="d-block">IM: {{ tomador.inscricao_municipal }}</small>
+                            {% endif %}
+                            {% if tomador.inscricao_estadual %}
+                            <small class="d-block text-muted">IE: {{ tomador.inscricao_estadual }}</small>
+                            {% endif %}
+                            {% if not tomador.inscricao_municipal and not tomador.inscricao_estadual %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if tomador.total_notas > 0 %}
+                            <span class="badge bg-success" data-bs-toggle="tooltip" 
+                                  title="{{ tomador.total_notas }} NFSe emitida(s)">
+                                {{ tomador.total_notas }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#detailModal{{ tomador.pk }}"
+                                        title="Ver Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                {% if tomador.total_notas > 0 %}
+                                <a href="{% url 'nfse:processada_list' %}?tomador={{ tomador.cnpj }}" 
+                                   class="btn btn-outline-primary"
+                                   data-bs-toggle="tooltip" 
+                                   title="Ver NFSe deste cliente">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <p class="text-muted mb-0">Nenhum cliente tomador encontrado</p>
+                            {% if request.GET %}
+                            <a href="{% url 'nfse:tomador_list' %}" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modals de Detalhe -->
+{% for tomador in tomadores %}
+<div class="modal fade" id="detailModal{{ tomador.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Dados Cadastrais -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3">Dados Cadastrais</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">CNPJ</dt>
+                            <dd class="col-sm-7"><code>{{ tomador.cnpj }}</code></dd>
+
+                            <dt class="col-sm-5">Razão Social</dt>
+                            <dd class="col-sm-7">{{ tomador.razao_social }}</dd>
+
+                            <dt class="col-sm-5">Nome Fantasia</dt>
+                            <dd class="col-sm-7">{{ tomador.nome_fantasia|default:"-" }}</dd>
+
+                            <dt class="col-sm-5">Insc. Municipal</dt>
+                            <dd class="col-sm-7">{{ tomador.inscricao_municipal|default:"-" }}</dd>
+
+                            <dt class="col-sm-5">Insc. Estadual</dt>
+                            <dd class="col-sm-7">{{ tomador.inscricao_estadual|default:"-" }}</dd>
+                        </dl>
+                    </div>
+
+                    <!-- Endereço -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3">Endereço</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">CEP</dt>
+                            <dd class="col-sm-8">{{ tomador.cep }}</dd>
+
+                            <dt class="col-sm-4">Logradouro</dt>
+                            <dd class="col-sm-8">{{ tomador.logradouro }}, {{ tomador.numero }}</dd>
+
+                            <dt class="col-sm-4">Complemento</dt>
+                            <dd class="col-sm-8">{{ tomador.complemento|default:"-" }}</dd>
+
+                            <dt class="col-sm-4">Bairro</dt>
+                            <dd class="col-sm-8">{{ tomador.bairro }}</dd>
+
+                            <dt class="col-sm-4">Cidade/UF</dt>
+                            <dd class="col-sm-8">{{ tomador.cidade }} - {{ tomador.estado }}</dd>
+
+                            <dt class="col-sm-4">Código IBGE</dt>
+                            <dd class="col-sm-8"><code>{{ tomador.codigo_cidade }}</code></dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Contato -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3">Contato</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">E-mail</dt>
+                            <dd class="col-sm-8">{{ tomador.email|default:"-" }}</dd>
+
+                            <dt class="col-sm-4">Telefone</dt>
+                            <dd class="col-sm-8">{{ tomador.telefone|default:"-" }}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3">Metadados</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Cadastrado em</dt>
+                            <dd class="col-sm-7">{{ tomador.created_at|date:"d/m/Y H:i" }}</dd>
+
+                            <dt class="col-sm-5">Atualizado em</dt>
+                            <dd class="col-sm-7">{{ tomador.updated_at|date:"d/m/Y H:i" }}</dd>
+
+                            <dt class="col-sm-5">NFSe Emitidas</dt>
+                            <dd class="col-sm-7">
+                                {% if tomador.total_notas > 0 %}
+                                <span class="badge bg-success">{{ tomador.total_notas }}</span>
+                                {% else %}
+                                <span class="text-muted">Nenhuma</span>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+
+                {% if tomador.total_notas > 0 %}
+                <hr>
+                <div class="d-flex justify-content-end">
+                    <a href="{% url 'nfse:processada_list' %}?tomador={{ tomador.cnpj }}" 
+                       class="btn btn-primary">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver NFSe deste Cliente
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ativar tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+});
+
+// Formatação de CNPJ no campo de busca
+document.querySelector('input[name="cnpj"]')?.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 14) {
+        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+        e.target.value = value;
+    }
+});
+</script>
+{% endblock %}

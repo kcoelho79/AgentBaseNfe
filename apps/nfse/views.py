@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.db.models import Q
+from django.db.models import Q, Count
 import json
 import logging
 from django.views.generic import (
@@ -158,5 +158,58 @@ class NotaFiscalProcessadaListView(LoginRequiredMixin, ListView):
             contabilidade=contabilidade,
             is_active=True
         ).order_by('razao_social')
+        
+        return context
+
+
+class ClienteTomadorListView(LoginRequiredMixin, ListView):
+    """Lista clientes tomadores com filtros."""
+    model = ClienteTomador
+    template_name = 'nfse/tomador_list.html'
+    context_object_name = 'tomadores'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        """Aplica filtros de busca e anota quantidade de notas."""
+        queryset = ClienteTomador.objects.annotate(
+            total_notas=Count('nfse_recebidas')
+        ).order_by('-created_at')
+        
+        # Filtro por CNPJ
+        cnpj = self.request.GET.get('cnpj', '').strip()
+        if cnpj:
+            queryset = queryset.filter(cnpj__icontains=cnpj)
+        
+        # Filtro por razão social
+        razao_social = self.request.GET.get('razao_social', '').strip()
+        if razao_social:
+            queryset = queryset.filter(
+                Q(razao_social__icontains=razao_social) |
+                Q(nome_fantasia__icontains=razao_social)
+            )
+        
+        # Filtro por cidade
+        cidade = self.request.GET.get('cidade', '').strip()
+        if cidade:
+            queryset = queryset.filter(cidade__icontains=cidade)
+        
+        # Filtro por estado
+        estado = self.request.GET.get('estado', '').strip()
+        if estado:
+            queryset = queryset.filter(estado__iexact=estado)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        """Adiciona estatísticas ao contexto."""
+        context = super().get_context_data(**kwargs)
+        
+        # Listar estados únicos para filtro
+        context['estados'] = ClienteTomador.objects.values_list(
+            'estado', flat=True
+        ).distinct().order_by('estado')
+        
+        # Estatísticas gerais
+        context['total_tomadores'] = ClienteTomador.objects.count()
         
         return context

@@ -68,4 +68,9 @@ class NFSeBuilder:
         }
         
         logger.info(f"Payload construído para {emissao.id_integracao}")
+        logger.info(f"\n{50 * '='} INÍCIO EMISSÃO NFSe {50 * '='}\n")
+        #log payload formatado
+        logger.info(payload)
+        logger.info(f"{50 * '='} FIM EMISSÃO NFSe {50 * '='}\n")
+
         return payload
