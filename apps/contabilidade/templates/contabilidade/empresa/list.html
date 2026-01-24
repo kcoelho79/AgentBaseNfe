@@ -62,10 +62,15 @@
                     {% for empresa in empresas %}
                     <tr>
                         <td>
-                            <code class="text-primary">{{ empresa.cpf_cnpj }}</code>
+                            <code class="text-primary">
+                                <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}">
+                                    {{ empresa.cpf_cnpj }}
+                                </a>
+                            </code>
+                            
                         </td>
                         <td>
-                            <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="text-white text-decoration-none">
+                            <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="text-secondary ">
                                 {{ empresa.razao_social|truncatechars:40 }}
                             </a>
                             {% if empresa.nome_fantasia %}

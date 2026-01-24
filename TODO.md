@@ -5,7 +5,10 @@ Geral
 
 APP Empresa
 
-[] /app/empresas trocar cor fonte, coluna razao social do thema claro
-campo CNPJ - link para detail da empresa
-campo CNPJ normalizar deixar salvo 06305747000134 ou 06.305.747/0001-34
+[x] /app/empresas trocar cor fonte, coluna razao social do thema claro
+[x]  campo CNPJ - link para detail da empresa
+[x]  campo CNPJ normalizar deixar salvo 06305747000134 ou 06.305.747/0001-34
+[ ] menu empresa details menu navtabs incluis os seguintes menus
+  [ ] Notas fiscal - lista todas as notas da empresa
+  [ ] Clientes Tomadores - lista ClientesTomadores dessa empresa
 

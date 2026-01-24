@@ -46,6 +46,11 @@ class EmpresaForm(forms.ModelForm):
         self.fields['regime_tributario'].required = False
         self.fields['regime_tributario_especial'].required = False
 
+    def clean_cpf_cnpj(self):
+        cpf_cnpj = self.cleaned_data.get('cpf_cnpj', '')
+        return ''.join(filter(str.isdigit, cpf_cnpj))
+
+
     def clean_codigo_pais(self):
         return self.cleaned_data.get('codigo_pais') or '1058'
 
