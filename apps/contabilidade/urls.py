@@ -38,6 +38,7 @@ urlpatterns = [
 
     # Sessões (lista sessões do APP Core)
     path('sessoes/', views.SessaoListView.as_view(), name='sessao_list'),
+    path('sessoes/<int:pk>/', views.SessaoDetailView.as_view(), name='sessao_detail'),
 
     # Notas Fiscais
     path('notas/', views.NotaFiscalListView.as_view(), name='nota_fiscal_list'),

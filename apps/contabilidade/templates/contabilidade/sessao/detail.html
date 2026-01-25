@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+
+{% block title %}Sessão {{ sessao.sessao_id }} - AgentNFe{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Detalhes da Sessão</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'contabilidade:sessao_list' %}">Sessões</a></li>
+                <li class="breadcrumb-item active">{{ sessao.sessao_id }}</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <a href="{% url 'contabilidade:sessao_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Cabeçalho da Sessão -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-dots me-2"></i>
+                    Sessão <code class="text-white">{{ sessao.sessao_id }}</code>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted small">Telefone</h6>
+                        <p class="mb-0">
+                            <i class="bi bi-whatsapp text-success me-1"></i>
+                            <strong>{{ sessao.telefone }}</strong>
+                        </p>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Estado</h6>
+                        <p class="mb-0">
+                            {% if sessao.estado == 'processando' %}
+                                <span class="badge bg-success">Processando</span>
+                            {% elif sessao.estado == 'aguardando_confirmacao' %}
+                                <span class="badge bg-warning">Aguardando</span>
+                            {% elif sessao.estado == 'coleta' %}
+                                <span class="badge bg-info">Coleta</span>
+                            {% elif sessao.estado == 'dados_incompletos' %}
+                                <span class="badge bg-secondary">Incompleto</span>
+                            {% elif sessao.estado == 'dados_completos' %}
+                                <span class="badge bg-primary">Completo</span>
+                            {% elif sessao.estado == 'aprovado' %}
+                                <span class="badge bg-success">Aprovado</span>
+                            {% elif sessao.estado == 'cancelado_usuario' %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% elif sessao.estado == 'erro' %}
+                                <span class="badge bg-danger">Erro</span>
+                            {% elif sessao.estado == 'expirado' %}
+                                <span class="badge bg-secondary">Expirado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ sessao.estado }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Dados Completos</h6>
+                        <p class="mb-0">
+                            {% if sessao.data_complete %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Sim</span>
+                            {% else %}
+                                <span class="badge bg-warning"><i class="bi bi-exclamation-circle me-1"></i>Não</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Interações</h6>
+                        <p class="mb-0"><strong>{{ sessao.interaction_count }}</strong> mensagens</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted small">Criada em</h6>
+                        <p class="mb-0">{{ sessao.session_created_at|date:"d/m/Y H:i" }}</p>
+                        <small class="text-muted">{{ sessao.session_created_at|timesince }} atrás</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dados Extraídos -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Dados da NFSe
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- CNPJ -->
+                    <div class="col-md-4">
+                        <h6 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-building me-2"></i>CNPJ
+                            <span class="badge bg-{% if sessao.cnpj_status == 'validated' %}success{% elif sessao.cnpj_status == 'error' %}danger{% elif sessao.cnpj_status == 'null' %}secondary{% elif sessao.cnpj_status == 'warning' %}warning{% endif %} float-end">
+                                {{ sessao.get_cnpj_status_display }}
+                            </span>
+                        </h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">CNPJ</dt>
+                            <dd class="col-sm-7">
+                                {% if sessao.cnpj %}
+                                    <code>{{ sessao.cnpj }}</code>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </dd>
+
+                            <dt class="col-sm-5">Razão Social</dt>
+                            <dd class="col-sm-7">{{ sessao.cnpj_razao_social|default:"-" }}</dd>
+
+                            {% if sessao.cnpj_issue %}
+                            <dt class="col-sm-5">Problema</dt>
+                            <dd class="col-sm-7">
+                                <small class="text-danger">{{ sessao.cnpj_issue }}</small>
+                            </dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <!-- Valor -->
+                    <div class="col-md-4">
+                        <h6 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-currency-dollar me-2"></i>Valor
+                            <span class="badge bg-{% if sessao.valor_status == 'validated' %}success{% elif sessao.valor_status == 'error' %}danger{% elif sessao.valor_status == 'null' %}secondary{% elif sessao.valor_status == 'warning' %}warning{% endif %} float-end">
+                                {{ sessao.get_valor_status_display }}
+                            </span>
+                        </h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Valor</dt>
+                            <dd class="col-sm-7">
+                                {% if sessao.valor %}
+                                    <strong class="text-success">{{ sessao.valor_formatted|default:sessao.valor }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </dd>
+
+                            {% if sessao.valor_issue %}
+                            <dt class="col-sm-5">Problema</dt>
+                            <dd class="col-sm-7">
+                                <small class="text-danger">{{ sessao.valor_issue }}</small>
+                            </dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="col-md-4">
+                        <h6 class="border-bottom pb-2 mb-3">
+                            <i class="bi bi-card-text me-2"></i>Descrição
+                            <span class="badge bg-{% if sessao.descricao_status == 'validated' %}success{% elif sessao.descricao_status == 'error' %}danger{% elif sessao.descricao_status == 'null' %}secondary{% elif sessao.descricao_status == 'warning' %}warning{% endif %} float-end">
+                                {{ sessao.get_descricao_status_display }}
+                            </span>
+                        </h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-12">Texto</dt>
+                            <dd class="col-sm-12">
+                                {% if sessao.descricao %}
+                                    <p class="small mb-0">{{ sessao.descricao|truncatechars:150 }}</p>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </dd>
+
+                            {% if sessao.descricao_issue %}
+                            <dt class="col-sm-12 mt-2">Problema</dt>
+                            <dd class="col-sm-12">
+                                <small class="text-danger">{{ sessao.descricao_issue }}</small>
+                            </dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+                {% if sessao.user_message %}
+                <hr>
+                <div class="alert alert-info mb-0">
+                    <strong>Última mensagem do sistema:</strong><br>
+                    {{ sessao.user_message }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-chat-left-text fs-1 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="text-muted small">Total Interações</div>
+                        <div class="h4 mb-0">{{ sessao.interaction_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-robot fs-1 text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="text-muted small">Mensagens Bot</div>
+                        <div class="h4 mb-0">{{ sessao.bot_message_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-lightning-charge fs-1 text-warning"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="text-muted small">Chamadas IA</div>
+                        <div class="h4 mb-0">{{ sessao.ai_calls_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NFSe Emitida (se existir) -->
+{% if emissao_nfse %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-check me-2"></i>
+                    NFSe Emitida
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted small">Prestador</h6>
+                        <p class="mb-0"><strong>{{ emissao_nfse.prestador.razao_social }}</strong></p>
+                        <small class="text-muted">{{ emissao_nfse.prestador.cnpj }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted small">Tomador</h6>
+                        <p class="mb-0"><strong>{{ emissao_nfse.tomador.razao_social }}</strong></p>
+                        <small class="text-muted">{{ emissao_nfse.tomador.cnpj }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Valor</h6>
+                        <p class="mb-0"><strong class="text-success">R$ {{ emissao_nfse.valor|floatformat:2 }}</strong></p>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Status</h6>
+                        <p class="mb-0">
+                            <span class="badge bg-{% if emissao_nfse.status == 'concluido' %}success{% elif emissao_nfse.status == 'erro' %}danger{% elif emissao_nfse.status == 'pendente' %}secondary{% elif emissao_nfse.status == 'processando' %}info{% endif %}">
+                                {{ emissao_nfse.get_status_display }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <a href="{% url 'nfse:emissao_list' %}?session={{ sessao.sessao_id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Histórico de Conversa -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Histórico de Conversa
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if sessao.messages.all %}
+                <div class="timeline">
+                    {% for msg in sessao.messages.all %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                {% if msg.role == 'user' %}
+                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                {% elif msg.role == 'assistant' %}
+                                    <div class="avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-robot"></i>
+                                    </div>
+                                {% else %}
+                                    <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong>
+                                        {% if msg.role == 'user' %}
+                                            Usuário
+                                        {% elif msg.role == 'assistant' %}
+                                            Assistente
+                                        {% else %}
+                                            Sistema
+                                        {% endif %}
+                                    </strong>
+                                    <small class="text-muted">{{ msg.timestamp|date:"d/m/Y H:i:s" }}</small>
+                                </div>
+                                <p class="mb-0" style="white-space: pre-wrap;">{{ msg.content }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-chat-dots fs-1 text-muted d-block mb-3"></i>
+                    <p class="text-muted mb-0">Nenhuma mensagem no histórico</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

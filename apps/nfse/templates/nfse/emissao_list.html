@@ -113,7 +113,9 @@
                             <code class="text-primary">{{ emissao.id_integracao|truncatechars:20 }}</code>
                             <small class="d-block text-muted">
                                 <i class="bi bi-whatsapp text-success me-1"></i>
-                                Sessão: {{ emissao.session.sessao_id|truncatechars:15 }}
+                                Sessão: <a href="{% url 'contabilidade:sessao_detail' emissao.session.pk %}" class="text-decoration-none">
+                                    <code>{{ emissao.session.sessao_id|truncatechars:15 }}</code>
+                                </a>
                             </small>
                         </td>
                         <td>

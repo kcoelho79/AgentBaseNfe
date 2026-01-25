@@ -43,7 +43,7 @@ class MessageProcessor:
             # 2. ADICIONAR MENSAGEM DO USUARIO
             session.add_user_message(mensagem)
             
-            # 2. VERIFICAR ESTADO E ROTEAR
+            # 3. VERIFICAR ESTADO E ROTEAR
             if session.estado == 'aguardando_confirmacao':
                 resposta = self._handle_confirmacao(session, mensagem)
             else:

@@ -10,12 +10,30 @@
 {% block extrahead %}
 {{ block.super }}
 <style>
-/* Fix para o color scheme toggle que aparece como quadrados pretos */
+/* Corrigir texto vertical nos links da sidebar */
+#content-related h3 a,
+#content-related .module h2 a,
+.module h2 a,
+.app-list a {
+    white-space: normal !important;
+    word-break: keep-all !important;
+    writing-mode: horizontal-tb !important;
+}
+
+/* Garantir que os links "Adicionar" e "Alterar" não fiquem verticais */
+.addlink, .changelink {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+}
+
+/* Fix para o color scheme toggle */
 .theme-toggle {
     display: flex !important;
     align-items: center;
     gap: 0.5rem;
 }
+
 .theme-toggle button {
     background: transparent;
     border: none;
@@ -24,9 +42,11 @@
     border-radius: 4px;
     color: var(--header-link-color);
 }
+
 .theme-toggle button:hover {
     background: rgba(255,255,255,0.1);
 }
+
 /* Corrigir inputs que aparecem como quadrados */
 .theme-toggle input[type="radio"],
 .theme-toggle input[type="checkbox"] {
@@ -35,11 +55,43 @@
     width: 0;
     height: 0;
 }
-/* Garantir que os icones SVG aparecem */
+
+/* Garantir que os ícones SVG aparecem */
 .theme-toggle svg {
     width: 20px;
     height: 20px;
     fill: currentColor;
 }
+
+/* Forçar modo horizontal em todos os textos da sidebar */
+#content-related * {
+    writing-mode: horizontal-tb !important;
+}
+
+/* Corrigir largura mínima da sidebar */
+#content-related {
+    min-width: 200px !important;
+}
 </style>
+
+<script>
+// Fix para o theme toggle funcionar
+document.addEventListener('DOMContentLoaded', function() {
+    // Procurar pelo toggle de tema
+    const themeToggle = document.querySelector('.theme-toggle');
+    if (themeToggle) {
+        const buttons = themeToggle.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const input = this.querySelector('input[type="radio"]');
+                if (input) {
+                    input.checked = true;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

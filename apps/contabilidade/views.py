@@ -280,6 +280,38 @@ class SessaoListView(LoginRequiredMixin, ListView):
         return context
 
 
+class SessaoDetailView(LoginRequiredMixin, DetailView):
+    '''Detalhes de uma sessão.'''
+    template_name = 'contabilidade/sessao/detail.html'
+    context_object_name = 'sessao'
+    
+    def get_queryset(self):
+        from apps.core.db_models import SessionSnapshot
+        
+        contabilidade = self.request.user.contabilidade
+        if not contabilidade:
+            return SessionSnapshot.objects.none()
+        
+        # Busca telefones dos usuários das empresas desta contabilidade
+        telefones = UsuarioEmpresa.objects.filter(
+            empresa__contabilidade=contabilidade,
+            is_active=True
+        ).values_list('telefone', flat=True)
+        
+        return SessionSnapshot.objects.filter(telefone__in=telefones).prefetch_related('messages')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Buscar emissão NFSe relacionada (se existir)
+        from apps.nfse.models import NFSeEmissao
+        context['emissao_nfse'] = NFSeEmissao.objects.filter(
+            session=self.object
+        ).select_related('prestador', 'tomador', 'nota_processada').first()
+        
+        return context
+
+
 # =============================================================================
 # Notas Fiscais
 # =============================================================================

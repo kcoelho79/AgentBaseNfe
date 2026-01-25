@@ -399,7 +399,7 @@ class Session(BaseModel):
     """
     
     # Identificação
-    sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%y%m%d%H%M')}-{uuid4().hex[:5]}")
+    sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%d%m%y')}{uuid4().hex[:4]}")
     telefone: str
     
     # Estado da máquina

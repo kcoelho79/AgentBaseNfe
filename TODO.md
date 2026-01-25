@@ -1,7 +1,7 @@
 
 Geral
 
-[ x] mover templates account/admin/contabilidade para a pasta do app
+[x] mover templates account/admin/contabilidade para a pasta do app
 
 APP Empresa
 
@@ -17,9 +17,20 @@ NFSE
   [x] criar lista notas emitidas
   [x] criar lista notas processadas
   [x] atualizar menu home notafiscal/emitidas/processadas
-  [ ] visualizar no menu empresas - notas ficais (notas emitidas)
-  [ ] criar consulta cnpj
+  [x] visualizar no menu empresas - notas ficais (notas emitidas)
+  [x] criar consulta cnpj
  
 Sessoes 
-    [ ] criar details da sessão 
+    [x] criar details da sessão  
+    [] desenho do mapeamento dos registrso das sesseos por estado
+    [] salvar os estados nos registors
 
+Refatorar
+    [] ??? reduzris os campos do banco de dados da notas fiscais 
+        [] refatorar - prompt (prompt para extração => vallidação manual => prompt para enivar mensagem)
+
+processe
+
+    [] mensagem sistema => campos preenchdi/campos faltantes 
+    [] mensalge sistema => mudança estados
+    
