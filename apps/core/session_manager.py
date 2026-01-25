@@ -117,8 +117,13 @@ class SessionManager:
             reason: Motivo do snapshot (manual, data_complete, confirmed, etc)
         """
         try:
-            # Verificar se já existe
+            # Capturar contexto do usuário (apenas na criação)
+            usuario_context = None
             existing = SessionSnapshot.objects.filter(sessao_id=session.sessao_id).first()
+            
+            if not existing:
+                # Primeira vez salvando - capturar contexto
+                usuario_context = self._get_usuario_context(session.telefone)
 
             if existing:
                 # Atualizar snapshot existente
@@ -140,7 +145,7 @@ class SessionManager:
                 )
             else:
                 # Criar novo snapshot
-                snapshot = SessionSnapshot.from_session(session, reason)
+                snapshot = SessionSnapshot.from_session(session, reason, usuario_context)
                 snapshot.save()
                 self._save_messages(snapshot, session)
 
@@ -162,6 +167,35 @@ class SessionManager:
                 }
             )
             raise
+    
+    def _get_usuario_context(self, telefone: str) -> dict:
+        """
+        Busca contexto do usuário (nome e empresa) pelo telefone.
+        
+        Args:
+            telefone: Número de telefone
+            
+        Returns:
+            Dict com nome, empresa_nome e empresa_id (ou dicionário vazio se não encontrar)
+        """
+        try:
+            from apps.contabilidade.models import UsuarioEmpresa
+            
+            usuario = UsuarioEmpresa.objects.select_related('empresa').filter(
+                telefone=telefone,
+                is_active=True
+            ).first()
+            
+            if usuario:
+                return {
+                    'nome': usuario.nome,
+                    'empresa_nome': usuario.empresa.nome_fantasia or usuario.empresa.razao_social,
+                    'empresa_id': usuario.empresa.id
+                }
+        except Exception as e:
+            logger.warning(f'Erro ao buscar contexto do usuário {telefone}: {e}')
+        
+        return {}
 
     def _save_messages(self, snapshot: SessionSnapshot, session: Session) -> None:
         """

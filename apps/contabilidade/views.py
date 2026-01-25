@@ -253,14 +253,26 @@ class SessaoListView(LoginRequiredMixin, ListView):
 
         qs = SessionSnapshot.objects.filter(telefone__in=telefones)
 
+        # Filtro por telefone
         telefone_busca = self.request.GET.get('telefone')
         if telefone_busca:
-            qs = qs.filter(telefone__icontains=telefone_busca)  
+            qs = qs.filter(telefone__icontains=telefone_busca)
+        
+        # Filtro por nome da empresa
+        empresa_busca = self.request.GET.get('empresa')
+        if empresa_busca:
+            qs = qs.filter(empresa_nome__icontains=empresa_busca)
 
         # Filtro por estado
         estado = self.request.GET.get('estado')
         if estado:
             qs = qs.filter(estado=estado)
+        
+        # Filtro: Conexões Ativas
+        ativas = self.request.GET.get('ativas')
+        if ativas == '1':
+            from apps.core.states import SessionState
+            qs = qs.filter(estado__in=SessionState.active_states())
 
         return qs.order_by('-session_created_at')
 
@@ -271,6 +283,7 @@ class SessaoListView(LoginRequiredMixin, ListView):
         # Usar estados do enum centralizado
         context['estados'] = SessionState.choices()
         context['estado_selecionado'] = self.request.GET.get('estado', '')
+        context['ativas_selecionado'] = self.request.GET.get('ativas', '')
         return context
 
 

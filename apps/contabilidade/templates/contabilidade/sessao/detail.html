@@ -29,16 +29,24 @@
                 <h5 class="mb-0">
                     <i class="bi bi-chat-dots me-2"></i>
                     Sessão <code class="text-white">{{ sessao.sessao_id }}</code>
+                    {% if sessao.empresa_nome %}
+                        - {{ sessao.empresa_nome }}
+                    {% endif %}
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <h6 class="text-muted small">Telefone</h6>
                         <p class="mb-0">
                             <i class="bi bi-whatsapp text-success me-1"></i>
                             <strong>{{ sessao.telefone }}</strong>
                         </p>
+                        {% if sessao.usuario_nome %}
+                        <small class="text-muted">
+                            <i class="bi bi-person me-1"></i>{{ sessao.usuario_nome }}
+                        </small>
+                        {% endif %}
                     </div>
                     <div class="col-md-2">
                         <h6 class="text-muted small">Estado</h6>
@@ -80,10 +88,27 @@
                         <h6 class="text-muted small">Interações</h6>
                         <p class="mb-0"><strong>{{ sessao.interaction_count }}</strong> mensagens</p>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <h6 class="text-muted small">Criada em</h6>
                         <p class="mb-0">{{ sessao.session_created_at|date:"d/m/Y H:i" }}</p>
                         <small class="text-muted">{{ sessao.session_created_at|timesince }} atrás</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h6 class="text-muted small">Expira em</h6>
+                        <p class="mb-0">
+                            {% if sessao.is_expired %}
+                                <span class="badge bg-danger">Expirado</span>
+                            {% else %}
+                                {{ sessao.get_expiration_date|date:"d/m/Y H:i" }}
+                            {% endif %}
+                        </p>
+                        <small class="text-muted">
+                            {% if sessao.is_expired %}
+                                {{ sessao.get_expiration_date|timesince }} atrás
+                            {% else %}
+                                em {{ sessao.get_expiration_date|timeuntil }}
+                            {% endif %}
+                        </small>
                     </div>
                 </div>
             </div>
@@ -301,16 +326,39 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-clock-history me-2"></i>
-                    Histórico de Conversa
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Histórico de Conversa
+                    </h5>
+                    <div class="btn-group" role="group" aria-label="Filtros de mensagens">
+                        <input type="radio" class="btn-check" name="messageFilter" id="filterAll" value="all" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="filterAll">
+                            <i class="bi bi-chat-dots me-1"></i>Todas
+                        </label>
+
+                        <input type="radio" class="btn-check" name="messageFilter" id="filterUser" value="user">
+                        <label class="btn btn-outline-primary btn-sm" for="filterUser">
+                            <i class="bi bi-person me-1"></i>Usuário
+                        </label>
+
+                        <input type="radio" class="btn-check" name="messageFilter" id="filterAssistant" value="assistant">
+                        <label class="btn btn-outline-primary btn-sm" for="filterAssistant">
+                            <i class="bi bi-robot me-1"></i>Assistente
+                        </label>
+
+                        <input type="checkbox" class="btn-check" id="filterSystem" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="filterSystem">
+                            <i class="bi bi-gear me-1"></i>Sistema
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 {% if sessao.messages.all %}
                 <div class="timeline">
                     {% for msg in sessao.messages.all %}
-                    <div class="mb-3 pb-3 border-bottom">
+                    <div class="mb-3 pb-3 border-bottom message-item" data-role="{{ msg.role }}">
                         <div class="d-flex align-items-start">
                             <div class="flex-shrink-0">
                                 {% if msg.role == 'user' %}
@@ -356,5 +404,60 @@
         </div>
     </div>
 </div>
+
+<script>
+// Filtro de mensagens do histórico
+document.addEventListener('DOMContentLoaded', function() {
+    const filterRadios = document.querySelectorAll('input[name="messageFilter"]');
+    const systemCheckbox = document.getElementById('filterSystem');
+    const messages = document.querySelectorAll('.message-item');
+
+    function applyFilters() {
+        const selectedFilter = document.querySelector('input[name="messageFilter"]:checked').value;
+        const showSystem = systemCheckbox.checked;
+
+        messages.forEach(msg => {
+            const role = msg.dataset.role;
+            let shouldShow = false;
+
+            // Aplicar filtro de tipo (all, user, assistant)
+            if (selectedFilter === 'all') {
+                shouldShow = true;
+            } else if (selectedFilter === role) {
+                shouldShow = true;
+            }
+
+            // Aplicar filtro de sistema
+            if (role === 'system' && !showSystem) {
+                shouldShow = false;
+            }
+
+            // Mostrar/ocultar
+            msg.style.display = shouldShow ? '' : 'none';
+        });
+
+        // Atualizar contador
+        updateMessageCount();
+    }
+
+    function updateMessageCount() {
+        const visibleCount = Array.from(messages).filter(msg => msg.style.display !== 'none').length;
+        const totalCount = messages.length;
+        
+        // Você pode adicionar um badge com contagem se desejar
+        console.log(`Exibindo ${visibleCount} de ${totalCount} mensagens`);
+    }
+
+    // Event listeners
+    filterRadios.forEach(radio => {
+        radio.addEventListener('change', applyFilters);
+    });
+
+    systemCheckbox.addEventListener('change', applyFilters);
+
+    // Aplicar filtros iniciais
+    applyFilters();
+});
+</script>
 
 {% endblock %}

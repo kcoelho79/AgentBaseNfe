@@ -19,11 +19,15 @@
 <div class="card mb-4">
     <div class="card-body py-3">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label class="form-label small text-muted">Telefone</label>
                 <input type="text" class="form-control" name="telefone" value="{{ request.GET.telefone }}" placeholder="Buscar por telefone...">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Empresa</label>
+                <input type="text" class="form-control" name="empresa" value="{{ request.GET.empresa }}" placeholder="Buscar por empresa...">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label small text-muted">Estado</label>
                 <select class="form-select" name="estado">
                     <option value="">Todos</option>
@@ -33,8 +37,17 @@
                 </select>
             </div>
             <div class="col-md-2">
+                <label class="form-label small text-muted d-block">&nbsp;</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="ativas" value="1" id="filtroAtivas" {% if ativas_selecionado == '1' %}checked{% endif %}>
+                    <label class="form-check-label" for="filtroAtivas">
+                        <i class="bi bi-activity me-1"></i>Conexões Ativas
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-1">
                 <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-search me-1"></i>Filtrar
+                    <i class="bi bi-search"></i>
                 </button>
             </div>
         </form>
@@ -63,10 +76,20 @@
                             <a href="{% url 'contabilidade:sessao_detail' sessao.pk %}" class="text-decoration-none">
                                 <code class="text-primary">{{ sessao.sessao_id|truncatechars:15 }}</code>
                             </a>
+                            {% if sessao.empresa_nome %}
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-building me-1"></i>{{ sessao.empresa_nome }}
+                            </div>
+                            {% endif %}
                         </td>
                         <td>
                             <i class="bi bi-whatsapp text-success me-1"></i>
                             {{ sessao.telefone }}
+                            {% if sessao.usuario_nome %}
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-person me-1"></i>{{ sessao.usuario_nome }}
+                            </div>
+                            {% endif %}
                         </td>
                         <td>
                             {% if sessao.estado == 'coleta' %}
