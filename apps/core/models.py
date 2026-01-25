@@ -8,6 +8,8 @@ from uuid import uuid4
 
 import logging
 
+from apps.core.states import SessionState, is_valid_transition
+
 logger = logging.getLogger(__name__)
 
 """ modelos Pydantic para dados extraidos pela IA Extractor
@@ -399,7 +401,7 @@ class Session(BaseModel):
     """
     
     # Identificação
-    sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%d%m%y')}{uuid4().hex[:4]}")
+    sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%d%m%y')}-{uuid4().hex[:4]}")
     telefone: str
     
     # Estado da máquina
@@ -465,9 +467,30 @@ class Session(BaseModel):
         self.updated_at = datetime.now()
     
     def update_estado(self, novo_estado: str) -> None:
-        """Atualiza estado da sessão."""
+        """
+        Atualiza estado da sessão com validação de transições.
+        
+        Args:
+            novo_estado: Novo estado (deve ser valor válido de SessionState)
+            
+        Raises:
+            ValueError: Se a transição não for válida
+        """
+        # Validar se transição é permitida
+        if not is_valid_transition(self.estado, novo_estado):
+            raise ValueError(
+                f"Transição de estado inválida: {self.estado} → {novo_estado}. "
+                f"Transições válidas: {list(s.value for s in SessionState if is_valid_transition(self.estado, s.value))}"
+            )
+        
+        old_estado = self.estado
         self.estado = novo_estado
         self.updated_at = datetime.now()
+        
+        logger.info(
+            f"Estado alterado: {old_estado} → {novo_estado}",
+            extra={'sessao_id': self.sessao_id, 'telefone': self.telefone}
+        )
     
     def update_invoice_data(self, dados: DadosNFSe) -> None:
         """Atualiza dados da nota."""

@@ -8,6 +8,7 @@ for SQLite3 persistence and admin interface queries.
 
 from django.db import models
 from django.utils import timezone
+from apps.core.states import SessionState
 
 
 class SessionSnapshot(models.Model):
@@ -34,22 +35,10 @@ class SessionSnapshot(models.Model):
     )
 
     # Estado da sessão
-    ESTADO_CHOICES = [
-        ('coleta', 'Coletando Dados'),
-        ('dados_incompletos', 'Dados Incompletos'),
-        ('dados_completos', 'Dados Completos'),
-        ('aguardando_confirmacao', 'Aguardando Confirmação'),
-        ('processando', 'Processando'),
-        ('aprovado', 'Aprovado'),
-        ('rejeitado', 'Rejeitado'),
-        ('erro', 'Erro'),
-        ('cancelado_usuario', 'Cancelado pelo Usuário'),
-        ('expirado', 'Expirado'),
-    ]
     estado = models.CharField(
         max_length=25,
-        choices=ESTADO_CHOICES,
-        default='coleta',
+        choices=SessionState.choices(),
+        default=SessionState.COLETA.value,
         db_index=True,
         verbose_name='Estado'
     )

@@ -266,16 +266,10 @@ class SessaoListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['estados'] = [
-            ('coleta', 'Coleta'),
-            ('dados_incompletos', 'Dados Incompletos'),
-            ('dados_completos', 'Dados Completos'),
-            ('aguardando_confirmacao', 'Aguardando Confirmação'),
-            ('processando', 'Processando'),
-            ('cancelado_usuario', 'Cancelado'),
-            ('erro', 'Erro'),
-            ('expirado', 'Expirado'),
-        ]
+        from apps.core.states import SessionState
+        
+        # Usar estados do enum centralizado
+        context['estados'] = SessionState.choices()
         context['estado_selecionado'] = self.request.GET.get('estado', '')
         return context
 

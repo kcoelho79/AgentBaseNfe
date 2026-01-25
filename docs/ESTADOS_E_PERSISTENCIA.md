@@ -11,16 +11,48 @@ O sistema de emissão de NFSe utiliza uma **máquina de estados** para gerenciar
 ### Estados Ativos (Sessão em Andamento)
 1. **`coleta`** - Coletando dados iniciais
 2. **`dados_incompletos`** - Faltam campos obrigatórios
-3. **`dados_completos`** - Todos os campos validados
-4. **`aguardando_confirmacao`** - Aguardando SIM/NÃO do usuário
+3. **`aguardando_confirmacao`** - Aguardando SIM/NÃO do usuário
 
 ### Estados Terminais (Sessão Finalizada)
-5. **`processando`** - Emissão NFSe em andamento
-6. **`aprovado`** - NFSe emitida com sucesso
-7. **`rejeitado`** - NFSe rejeitada pelo gateway
-8. **`erro`** - Erro técnico durante processamento
-9. **`cancelado_usuario`** - Usuário cancelou a operação
-10. **`expirado`** - Sessão ultrapassou TTL (1 hora)
+4. **`processando`** - Emissão NFSe em andamento
+5. **`aprovado`** - NFSe emitida com sucesso
+6. **`rejeitado`** - NFSe rejeitada pelo gateway
+7. **`erro`** - Erro técnico durante processamento
+8. **`cancelado_usuario`** - Usuário cancelou a operação
+9. **`expirado`** - Sessão ultrapassou TTL (1 hora)
+
+---
+
+## 🔄 Diagrama da Máquina de Estados
+
+```mermaid
+stateDiagram-v2
+    [*] --> coleta: Nova sessão
+    
+    coleta --> dados_incompletos: IA extrai (incompleto)
+    coleta --> aguardando_confirmacao: IA extrai (completo)
+    coleta --> expirado: TTL
+    
+    dados_incompletos --> dados_incompletos: IA extrai (ainda falta)
+    dados_incompletos --> aguardando_confirmacao: IA extrai (completo)
+    dados_incompletos --> expirado: TTL
+    
+    aguardando_confirmacao --> processando: Usuário: SIM
+    aguardando_confirmacao --> cancelado_usuario: Usuário: NÃO
+    aguardando_confirmacao --> expirado: TTL
+    
+    processando --> aprovado: Webhook: sucesso
+    processando --> rejeitado: Webhook: rejeição
+    processando --> erro: Timeout/Erro técnico
+    
+    aprovado --> [*]
+    rejeitado --> [*]
+    erro --> [*]
+    cancelado_usuario --> [*]
+    expirado --> [*]
+```
+
+> **Nota**: Estados terminais (`processando`, `aprovado`, `rejeitado`, `erro`, `cancelado_usuario`, `expirado`) não permitem transições adicionais.
 
 ---
 
@@ -144,7 +176,7 @@ Salva **snapshot completo** da sessão em momentos críticos.
 
 ---
 
-### **Estado: `dados_completos`** → **`aguardando_confirmacao`**
+### **Estado: `aguardando_confirmacao`**
 
 **Trigger**: IA validou todos os campos (CNPJ, Valor, Descrição)
 

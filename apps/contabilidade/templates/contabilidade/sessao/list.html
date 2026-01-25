@@ -69,20 +69,24 @@
                             {{ sessao.telefone }}
                         </td>
                         <td>
-                            {% if sessao.estado == 'processando' %}
-                                <span class="badge bg-success">Processando</span>
-                            {% elif sessao.estado == 'aguardando_confirmacao' %}
-                                <span class="badge bg-warning">Aguardando</span>
-                            {% elif sessao.estado == 'coleta' %}
+                            {% if sessao.estado == 'coleta' %}
                                 <span class="badge bg-info">Coleta</span>
                             {% elif sessao.estado == 'dados_incompletos' %}
                                 <span class="badge bg-secondary">Incompleto</span>
-                            {% elif sessao.estado == 'cancelado_usuario' %}
-                                <span class="badge bg-danger">Cancelado</span>
+                            {% elif sessao.estado == 'aguardando_confirmacao' %}
+                                <span class="badge bg-warning">Aguardando</span>
+                            {% elif sessao.estado == 'processando' %}
+                                <span class="badge bg-primary">Processando</span>
+                            {% elif sessao.estado == 'aprovado' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                            {% elif sessao.estado == 'rejeitado' %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rejeitado</span>
                             {% elif sessao.estado == 'erro' %}
-                                <span class="badge bg-danger">Erro</span>
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Erro</span>
+                            {% elif sessao.estado == 'cancelado_usuario' %}
+                                <span class="badge bg-dark">Cancelado</span>
                             {% elif sessao.estado == 'expirado' %}
-                                <span class="badge bg-secondary">Expirado</span>
+                                <span class="badge bg-secondary"><i class="bi bi-clock me-1"></i>Expirado</span>
                             {% else %}
                                 <span class="badge bg-secondary">{{ sessao.estado }}</span>
                             {% endif %}

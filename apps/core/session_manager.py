@@ -11,12 +11,9 @@ from typing import Optional
 from django.db import transaction
 from apps.core.models import Session
 from apps.core.db_models import SessionSnapshot, SessionMessage
+from apps.core.states import SessionState
 
 logger = logging.getLogger(__name__)
-
-
-# Estados terminais que não devem ser retornados como sessão ativa
-TERMINAL_STATES = ['processando', 'aprovado', 'rejeitado', 'erro', 'cancelado_usuario', 'expirado']
 
 
 class SessionManager:
@@ -50,7 +47,7 @@ class SessionManager:
             snapshot = (
                 SessionSnapshot.objects
                 .filter(telefone=telefone)
-                .exclude(estado__in=TERMINAL_STATES)
+                .exclude(estado__in=SessionState.terminal_states())
                 .order_by('-session_updated_at')
                 .first()
             )
@@ -66,7 +63,7 @@ class SessionManager:
                     extra={'telefone': telefone}
                 )
                 # Marcar como expirada no banco
-                snapshot.estado = 'expirado'
+                snapshot.estado = SessionState.EXPIRADO.value
                 snapshot.snapshot_reason = 'expired'
                 snapshot.save()
                 return None
@@ -213,14 +210,14 @@ class SessionManager:
             snapshot = (
                 SessionSnapshot.objects
                 .filter(telefone=telefone)
-                .exclude(estado__in=TERMINAL_STATES)
+                .exclude(estado__in=SessionState.terminal_states())
                 .order_by('-session_updated_at')
                 .first()
             )
 
             if snapshot:
                 # Marcar sessão como cancelada
-                snapshot.estado = 'cancelado_usuario'
+                snapshot.estado = SessionState.CANCELADO_USUARIO.value
                 snapshot.snapshot_reason = 'manual_clear'
                 snapshot.save()
                 logger.info(
@@ -249,9 +246,10 @@ class SessionManager:
         session = self.get_session(telefone)
 
         if session:
-            return session
+            return (False, session)
 
-        return self.create_session(telefone, ttl)
+        new_session = self.create_session(telefone, ttl)
+        return (True, new_session)
 
     def get_ttl(self, telefone: str) -> int:
         """
@@ -267,7 +265,7 @@ class SessionManager:
             snapshot = (
                 SessionSnapshot.objects
                 .filter(telefone=telefone)
-                .exclude(estado__in=TERMINAL_STATES)
+                .exclude(estado__in=SessionState.terminal_states())
                 .order_by('-session_updated_at')
                 .first()
             )

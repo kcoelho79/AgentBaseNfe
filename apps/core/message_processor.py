@@ -6,6 +6,7 @@ from apps.core.models import DadosNFSe, Session
 from apps.core.reponse_builder import ResponseBuilder
 from apps.core.agent_extractor import AIExtractor
 from apps.core.session_manager import SessionManager
+from apps.core.states import SessionState
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,18 @@ class MessageProcessor:
         
         try:
             # 1. RECUPERAR OU CRIAR A SESSAO
-            session = self.session_manager.get_or_create_session(telefone)
+            created, session = self.session_manager.get_or_create_session(telefone)
+            if created:
+                logger.info('Nova sessão criada', extra={'telefone': telefone})
+                session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Sessão criada: {session.sessao_id}.")
+            else:
+                logger.info('Sessão existente recuperada', extra={'telefone': telefone})
 
             # 2. ADICIONAR MENSAGEM DO USUARIO
             session.add_user_message(mensagem)
             
             # 3. VERIFICAR ESTADO E ROTEAR
-            if session.estado == 'aguardando_confirmacao':
+            if session.estado == SessionState.AGUARDANDO_CONFIRMACAO.value:
                 resposta = self._handle_confirmacao(session, mensagem)
             else:
                 resposta = self._processar_coleta(session, mensagem)
@@ -100,6 +106,8 @@ class MessageProcessor:
 
         # Atualizar invoice_data na sessão
         session.update_invoice_data(dados_finais)
+        session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} dados faltando: {dados_finais.missing_fields}.")
+
         
         # LOG para debug
         logger.debug(f"Dados processados:\n{dados_finais.model_dump_json(indent=2)}")
@@ -107,11 +115,14 @@ class MessageProcessor:
         #  VERIFICAR SE DADOS COMPLETOS
         if dados_finais.data_complete:
             logger.info("Dados completos - exibindo espelho", extra={'telefone': session.telefone})
-            session.update_estado('aguardando_confirmacao')
+            session.update_estado(SessionState.AGUARDANDO_CONFIRMACAO.value)
+            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Estado alterado: aguardando_confirmação.")
+
             # Sessão será salva automaticamente pelo save_session no final do processo
             return self.response_builder.build_espelho(dados_finais.to_dict())
         else:
-            session.update_estado('dados_incompletos')
+            session.update_estado(SessionState.DADOS_INCOMPLETOS.value)
+            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Estado alterado: dados incompletos.")
             logger.info("Dados incompletos - solicitando campos", extra={'telefone': session.telefone})
             return self.response_builder.build_dados_incompletos(dados_finais.user_message)
     
@@ -127,8 +138,8 @@ class MessageProcessor:
         # CONFIRMOU
         if msg_normalizada in ['sim', 's', 'ok', 'confirmar', 'confirmo']:
             logger.info("Confirmado - processando emissão", extra={'telefone': session.telefone})
-            session.update_estado('processando')
-            session.add_system_message(f"{datetime.now()} usuario nota confirmada.")
+            session.update_estado(SessionState.PROCESSANDO.value)
+            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} usuario nota confirmada.")
 
             # Salvar sessão com estado final (confirmed)
             self.session_manager.save_session(session, reason='confirmed')
@@ -147,8 +158,8 @@ class MessageProcessor:
         # CANCELOU
         elif msg_normalizada in ['não', 'nao', 'n', 'cancelar', 'cancela']:
             logger.info("Cancelado pelo usuário", extra={'telefone': session.telefone})
-            session.update_estado('cancelado_usuario')
-            session.add_system_message(f"{datetime.now()} Solicitação cancelada pelo usuário.")
+            session.update_estado(SessionState.CANCELADO_USUARIO.value)
+            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Solicitação cancelada pelo usuário.")
 
             # Salvar sessão com estado final (cancelled)
             self.session_manager.save_session(session, reason='cancelled')
