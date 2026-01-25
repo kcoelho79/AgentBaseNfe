@@ -6,6 +6,7 @@ Manages conversation sessions using Django ORM with SessionSnapshot model.
 This replaces the previous Redis-based implementation for simplicity.
 """
 
+from datetime import datetime
 import logging
 from typing import Optional
 from django.db import transaction
@@ -98,6 +99,8 @@ class SessionManager:
             f'Sessão criada: {session.sessao_id}',
             extra={'telefone': telefone}
         )
+        session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Nova Sessão criada: {session.sessao_id}.")
+
 
         return session
 
@@ -246,10 +249,9 @@ class SessionManager:
         session = self.get_session(telefone)
 
         if session:
-            return (False, session)
+            return session
 
-        new_session = self.create_session(telefone, ttl)
-        return (True, new_session)
+        return self.create_session(telefone, ttl)
 
     def get_ttl(self, telefone: str) -> int:
         """

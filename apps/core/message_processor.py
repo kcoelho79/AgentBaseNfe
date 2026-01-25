@@ -39,12 +39,8 @@ class MessageProcessor:
         
         try:
             # 1. RECUPERAR OU CRIAR A SESSAO
-            created, session = self.session_manager.get_or_create_session(telefone)
-            if created:
-                logger.info('Nova sessão criada', extra={'telefone': telefone})
-                session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Sessão criada: {session.sessao_id}.")
-            else:
-                logger.info('Sessão existente recuperada', extra={'telefone': telefone})
+            session = self.session_manager.get_or_create_session(telefone)
+
 
             # 2. ADICIONAR MENSAGEM DO USUARIO
             session.add_user_message(mensagem)
@@ -60,7 +56,9 @@ class MessageProcessor:
 
             # 5. SALVAR SESSÃO ATUALIZADA
             self.session_manager.save_session(session)
-            logger.debug(f"SESSÃO SALVA:\n\n{session.model_dump_json(indent=2)}\n\n")
+            logger.debug(f"{50 * '='}\n==========  INICIO DUMP SESSÃO  ========== \n\
+                         \n{session.model_dump_json(indent=2)}\n{50 * '='}\n \
+            ==========  FIM DUMP SESSÃO  ==========")
 
             return resposta
 
@@ -106,7 +104,6 @@ class MessageProcessor:
 
         # Atualizar invoice_data na sessão
         session.update_invoice_data(dados_finais)
-        session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} dados faltando: {dados_finais.missing_fields}.")
 
         
         # LOG para debug
@@ -116,13 +113,11 @@ class MessageProcessor:
         if dados_finais.data_complete:
             logger.info("Dados completos - exibindo espelho", extra={'telefone': session.telefone})
             session.update_estado(SessionState.AGUARDANDO_CONFIRMACAO.value)
-            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Estado alterado: aguardando_confirmação.")
 
             # Sessão será salva automaticamente pelo save_session no final do processo
             return self.response_builder.build_espelho(dados_finais.to_dict())
         else:
             session.update_estado(SessionState.DADOS_INCOMPLETOS.value)
-            session.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Estado alterado: dados incompletos.")
             logger.info("Dados incompletos - solicitando campos", extra={'telefone': session.telefone})
             return self.response_builder.build_dados_incompletos(dados_finais.user_message)
     

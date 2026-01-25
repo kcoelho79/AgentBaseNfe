@@ -491,11 +491,16 @@ class Session(BaseModel):
             f"Estado alterado: {old_estado} → {novo_estado}",
             extra={'sessao_id': self.sessao_id, 'telefone': self.telefone}
         )
+        self.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} Estado alterado: {novo_estado}.")
+        
+
     
     def update_invoice_data(self, dados: DadosNFSe) -> None:
         """Atualiza dados da nota."""
         self.invoice_data = dados
         self.updated_at = datetime.now()
+        self.add_system_message(f"{datetime.now().strftime('%d/%m/%y %H:%M')} dados faltando: {dados.missing_fields}\ndados invalidos: {dados.invalid_fields}.")
+
     
     def get_conversation_history(self, limit: Optional[int] = None) -> List[Message]:
         """
