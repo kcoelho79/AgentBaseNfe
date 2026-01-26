@@ -72,11 +72,33 @@ class EmpresaListView(TenantMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        from django.db.models import Count
+        from apps.core.db_models import SessionSnapshot
+        
         qs = super().get_queryset()
         search = self.request.GET.get('search')
         if search:
             qs = qs.filter(razao_social__icontains=search) | qs.filter(cpf_cnpj__icontains=search)
-        return qs
+        
+        # Anotar com totalizadores
+        qs = qs.annotate(
+            total_usuarios=Count('usuarios_autorizados', distinct=True)
+        )
+        
+        # Adicionar contagem de sessões manualmente via empresa_id
+        empresas = list(qs)
+        empresa_ids = [e.id for e in empresas]
+        
+        sessoes_count = SessionSnapshot.objects.filter(
+            empresa_id__in=empresa_ids
+        ).values('empresa_id').annotate(total=Count('id'))
+        
+        sessoes_dict = {s['empresa_id']: s['total'] for s in sessoes_count}
+        
+        for empresa in empresas:
+            empresa.total_sessoes = sessoes_dict.get(empresa.id, 0)
+        
+        return empresas
 
 
 class EmpresaCreateView(TenantMixin, CreateView):

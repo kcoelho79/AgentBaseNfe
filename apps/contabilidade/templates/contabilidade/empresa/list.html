@@ -50,11 +50,11 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th>CNPJ</th>
-                        <th>Razão Social</th>
-                        <th>Cidade/UF</th>
-                        <th>Regime</th>
-                        <th>Status</th>
+                        <th style="width: 35%;">Razão Social</th>
+                        <th class="text-center">Clientes</th>
+                        <th class="text-center">Notas Fiscais</th>
+                        <th class="text-center">Sessões</th>
+                        <th class="text-center">Usuários</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
@@ -62,39 +62,36 @@
                     {% for empresa in empresas %}
                     <tr>
                         <td>
-                            <code class="text-primary">
-                                <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}">
-                                    {{ empresa.cpf_cnpj }}
-                                </a>
-                            </code>
-                            
-                        </td>
-                        <td>
-                            <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="text-secondary ">
-                                {{ empresa.razao_social|truncatechars:40 }}
+                            <a href="{% url 'contabilidade:empresa_detail' empresa.pk %}" class="text-dark text-decoration-none">
+                                <strong>{{ empresa.razao_social }}</strong>
                             </a>
                             {% if empresa.nome_fantasia %}
-                            <br><small class="text-muted">{{ empresa.nome_fantasia|truncatechars:35 }}</small>
+                            <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ empresa.nome_fantasia|truncatechars:50 }}</small>
                             {% endif %}
                         </td>
-                        <td>{{ empresa.descricao_cidade|default:"-" }}/{{ empresa.estado|default:"-" }}</td>
-                        <td>
-                            {% if empresa.regime_tributario == 1 %}
-                                <span class="badge bg-success">Simples</span>
-                            {% elif empresa.regime_tributario == 2 %}
-                                <span class="badge bg-info">Simples Excesso</span>
-                            {% elif empresa.regime_tributario == 3 %}
-                                <span class="badge bg-warning">Normal</span>
-                            {% else %}
-                                <span class="badge bg-secondary">-</span>
-                            {% endif %}
+                        <td class="text-center">
+                            <a href="#" class="text-decoration-none" title="Ver clientes">
+                                <i class="bi bi-people text-primary me-1"></i>
+                                <span class="badge bg-primary rounded-pill">0</span>
+                            </a>
                         </td>
-                        <td>
-                            {% if empresa.is_active %}
-                                <span class="badge bg-success">Ativo</span>
-                            {% else %}
-                                <span class="badge bg-danger">Inativo</span>
-                            {% endif %}
+                        <td class="text-center">
+                            <a href="#" class="text-decoration-none" title="Ver notas fiscais">
+                                <i class="bi bi-file-earmark-text text-success me-1"></i>
+                                <span class="badge bg-success rounded-pill">0</span>
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'contabilidade:sessao_list' %}?empresa={{ empresa.razao_social }}" class="text-decoration-none" title="Ver sessões">
+                                <i class="bi bi-chat-dots text-info me-1"></i>
+                                <span class="badge bg-info rounded-pill">{{ empresa.total_sessoes|default:0 }}</span>
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'contabilidade:usuario_empresa_list' empresa.pk %}" class="text-decoration-none" title="Ver usuários autorizados">
+                                <i class="bi bi-person-badge text-warning me-1"></i>
+                                <span class="badge bg-warning rounded-pill">{{ empresa.total_usuarios|default:0 }}</span>
+                            </a>
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
@@ -104,7 +101,7 @@
                                 <a href="{% url 'contabilidade:empresa_update' empresa.pk %}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="{% url 'contabilidade:empresa_delete' empresa.pk %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Excluir" data-confirm="Tem certeza que deseja excluir esta empresa?">
+                                <a href="{% url 'contabilidade:empresa_delete' empresa.pk %}" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Excluir">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </div>
