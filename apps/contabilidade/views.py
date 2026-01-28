@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Count
+from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
@@ -9,13 +10,16 @@ from django.views.generic import (
     TemplateView, ListView, CreateView, UpdateView, DeleteView, DetailView, View
 )
 from datetime import timedelta
+import logging
 
 from .mixins import TenantMixin, EmpresaContextMixin
 from .models import Empresa, UsuarioEmpresa, Certificado
 from .forms import EmpresaForm, UsuarioEmpresaForm, CertificadoForm
 from apps.account.forms import UserForm
+from apps.nfse.services.receita_federal import ReceitaFederalService
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -517,6 +521,106 @@ class UsuarioDeleteView(LoginRequiredMixin, DeleteView):
             return User.objects.none()
         # Não permite excluir o próprio usuário
         return User.objects.filter(contabilidade=contabilidade).exclude(pk=self.request.user.pk)
+
+
+# =============================================================================
+# API/AJAX Views
+# =============================================================================
+
+class ConsultarCNPJView(LoginRequiredMixin, View):
+    '''Consulta CNPJ na Receita Federal via BrasilAPI.'''
+    
+    def get(self, request):
+        cnpj = request.GET.get('cnpj', '').strip()
+        
+        if not cnpj:
+            return JsonResponse({'error': 'CNPJ não informado'}, status=400)
+        
+        # Remove formatação
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+        
+        if len(cnpj_limpo) != 14:
+            return JsonResponse({'error': 'CNPJ inválido'}, status=400)
+        
+        try:
+            dados = ReceitaFederalService.consultar_cnpj(cnpj_limpo)
+
+            # Formatar código CNAE: 9430800 → "9430-8/00"
+            def formatar_cnae(codigo):
+                s = str(codigo).strip()
+                if len(s) == 7 and s.isdigit():
+                    return f"{s[:4]}-{s[4]}/{s[5:]}"
+                return s
+
+            # Processar CNAEs
+            cnae_principal = ''
+            cnae_secundarios = ''
+            if dados.get('cnae_fiscal'):
+                cnae_principal = formatar_cnae(dados['cnae_fiscal'])
+            if dados.get('cnaes_secundarios'):
+                cnaes = [formatar_cnae(c.get('codigo', '')) for c in dados['cnaes_secundarios'] if c.get('codigo')]
+                cnae_secundarios = ', '.join(cnaes)
+
+            # Determinar regime tributário baseado em natureza jurídica e porte
+            regime_tributario = 3  # Regime Normal por padrão
+            simples_nacional = False
+
+            # Códigos de natureza jurídica que indicam Simples Nacional (MEI, ME, EPP)
+            natureza = str(dados.get('codigo_natureza_juridica', ''))
+            porte = (dados.get('porte') or '').upper()
+
+            opcao_simples = dados.get('opcao_pelo_simples')
+            if porte in ['ME', 'MEI', 'EPP'] or opcao_simples is True or 'SIMPLES' in str(opcao_simples or '').upper():
+                regime_tributario = 1  # Simples Nacional
+                simples_nacional = True
+
+            # Extrair tipo de logradouro
+            tipo_logradouro = dados.get('descricao_tipo_de_logradouro', '')
+
+            # Separar DDD e número do telefone
+            telefone_raw = (dados.get('ddd_telefone_1') or '').strip()
+            telefone_ddd = ''
+            telefone_numero = ''
+            if telefone_raw:
+                telefone_digits = ''.join(filter(str.isdigit, telefone_raw))
+                if len(telefone_digits) >= 10:
+                    telefone_ddd = telefone_digits[:2]
+                    telefone_numero = telefone_digits[2:]
+                else:
+                    telefone_numero = telefone_digits
+
+            # Formatar resposta para o frontend
+            response_data = {
+                'success': True,
+                'cnpj': cnpj_limpo,
+                'razao_social': dados.get('razao_social', ''),
+                'nome_fantasia': dados.get('nome_fantasia', ''),
+                'cnae_principal': cnae_principal,
+                'cnae_secundarios': cnae_secundarios,
+                'simples_nacional': simples_nacional,
+                'regime_tributario': regime_tributario,
+                'cep': (dados.get('cep') or '').replace('-', ''),
+                'tipo_logradouro': tipo_logradouro,
+                'logradouro': dados.get('logradouro', ''),
+                'numero': dados.get('numero', ''),
+                'complemento': dados.get('complemento', ''),
+                'bairro': dados.get('bairro', ''),
+                'cidade': dados.get('municipio', ''),
+                'estado': dados.get('uf', ''),
+                'codigo_cidade': str(dados.get('codigo_municipio_ibge', ''))[:7],
+                'email': dados.get('email', ''),
+                'telefone_ddd': telefone_ddd,
+                'telefone_numero': telefone_numero,
+            }
+            
+            logger.info(f"CNPJ {cnpj_limpo} consultado com sucesso via AJAX")
+            return JsonResponse(response_data)
+            
+        except Exception as e:
+            logger.error(f"Erro ao consultar CNPJ {cnpj_limpo}: {str(e)}")
+            return JsonResponse({
+                'error': f'Erro ao consultar CNPJ: {str(e)}'
+            }, status=400)
 
     def form_valid(self, form):
         messages.success(self.request, 'Usuário excluído com sucesso!')

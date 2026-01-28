@@ -49,11 +49,18 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="id_cpf_cnpj" class="form-label">CNPJ <span class="text-danger">*</span></label>
+                            <label for="id_cpf_cnpj" class="form-label">
+                                CNPJ <span class="text-danger">*</span>
+                                <span id="cnpj-loading" class="spinner-border spinner-border-sm ms-2 d-none" role="status">
+                                    <span class="visually-hidden">Buscando...</span>
+                                </span>
+                            </label>
                             {{ form.cpf_cnpj }}
                             {% if form.cpf_cnpj.errors %}
                                 <div class="text-danger small">{{ form.cpf_cnpj.errors.0 }}</div>
                             {% endif %}
+                            <small class="text-muted">Digite 14 dígitos para busca automática</small>
+                            <div id="cnpj-feedback" class="d-none mt-1"></div>
                         </div>
 
                         <div class="col-md-8 mb-3">
@@ -68,6 +75,17 @@
                     <div class="mb-3">
                         <label for="id_nome_fantasia" class="form-label">Nome Fantasia</label>
                         {{ form.nome_fantasia }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="id_cnae_principal" class="form-label">CNAE Principal</label>
+                            {{ form.cnae_principal }}
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label for="id_cnae_secundarios" class="form-label">CNAEs Secundários</label>
+                            {{ form.cnae_secundarios }}
+                        </div>
                     </div>
 
                     <div class="row">
@@ -270,4 +288,138 @@
         </div>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cnpjInput = document.getElementById('id_cpf_cnpj');
+    const loadingSpinner = document.getElementById('cnpj-loading');
+    let timeoutId = null;
+    let ultimoCnpjBuscado = '';
+
+    // Função para buscar dados do CNPJ
+    function buscarCNPJ(cnpj) {
+        const cnpjLimpo = cnpj.replace(/\D/g, '');
+        
+        // Verificar se tem 14 dígitos e não é repetição
+        if (cnpjLimpo.length !== 14 || cnpjLimpo === ultimoCnpjBuscado) {
+            return;
+        }
+        
+        ultimoCnpjBuscado = cnpjLimpo;
+        
+        // Mostrar loading
+        loadingSpinner.classList.remove('d-none');
+        
+        // Fazer requisição AJAX
+        fetch(`{% url 'contabilidade:consultar_cnpj_ajax' %}?cnpj=${encodeURIComponent(cnpjLimpo)}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Erro ao consultar CNPJ');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Mapa de campo da API → id do elemento no form
+                    const fieldMap = {
+                        'razao_social': 'id_razao_social',
+                        'nome_fantasia': 'id_nome_fantasia',
+                        'cnae_principal': 'id_cnae_principal',
+                        'cnae_secundarios': 'id_cnae_secundarios',
+                        'cep': 'id_cep',
+                        'tipo_logradouro': 'id_tipo_logradouro',
+                        'logradouro': 'id_logradouro',
+                        'numero': 'id_numero',
+                        'complemento': 'id_complemento',
+                        'bairro': 'id_bairro',
+                        'cidade': 'id_descricao_cidade',
+                        'estado': 'id_estado',
+                        'codigo_cidade': 'id_codigo_cidade',
+                        'email': 'id_email',
+                        'telefone_ddd': 'id_telefone_ddd',
+                        'telefone_numero': 'id_telefone_numero',
+                    };
+
+                    let count = 0;
+                    for (const [key, elId] of Object.entries(fieldMap)) {
+                        if (data[key]) {
+                            const el = document.getElementById(elId);
+                            if (el) {
+                                el.value = data[key];
+                                el.classList.add('border-success');
+                                setTimeout(() => el.classList.remove('border-success'), 3000);
+                                count++;
+                            }
+                        }
+                    }
+
+                    // Campos especiais (select e checkbox)
+                    if (data.regime_tributario) {
+                        const rt = document.getElementById('id_regime_tributario');
+                        if (rt) {
+                            rt.value = data.regime_tributario;
+                            rt.classList.add('border-success');
+                            setTimeout(() => rt.classList.remove('border-success'), 3000);
+                            count++;
+                        }
+                    }
+                    if (data.simples_nacional !== undefined) {
+                        const sn = document.getElementById('id_simples_nacional');
+                        if (sn) {
+                            sn.checked = data.simples_nacional;
+                            count++;
+                        }
+                    }
+
+                    // Feedback de sucesso
+                    const feedback = document.getElementById('cnpj-feedback');
+                    feedback.className = 'alert alert-success py-1 px-2 small mt-1';
+                    feedback.textContent = count + ' campos preenchidos automaticamente';
+                    setTimeout(() => {
+                        feedback.className = 'd-none mt-1';
+                        feedback.textContent = '';
+                    }, 4000);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar CNPJ:', error);
+                const feedback = document.getElementById('cnpj-feedback');
+                feedback.className = 'alert alert-warning py-1 px-2 small mt-1';
+                feedback.textContent = error.message || 'Erro ao consultar CNPJ';
+                setTimeout(() => {
+                    feedback.className = 'd-none mt-1';
+                    feedback.textContent = '';
+                }, 5000);
+            })
+            .finally(() => {
+                loadingSpinner.classList.add('d-none');
+            });
+    }
+
+    // Evento de digitação no campo CNPJ
+    cnpjInput.addEventListener('input', function() {
+        // Limpar timeout anterior
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        
+        // Aguardar 800ms após parar de digitar
+        timeoutId = setTimeout(() => {
+            buscarCNPJ(cnpjInput.value);
+        }, 800);
+    });
+    
+    // Evento de blur para busca imediata
+    cnpjInput.addEventListener('blur', function() {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        buscarCNPJ(cnpjInput.value);
+    });
+});
+</script>
 {% endblock %}

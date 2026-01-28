@@ -56,6 +56,10 @@ class Empresa(models.Model):
     nome_fantasia = models.CharField('nome fantasia', max_length=200, blank=True)
     inscricao_municipal = models.CharField('inscrição municipal', max_length=20, blank=True)
     inscricao_estadual = models.CharField('inscrição estadual', max_length=20, blank=True)
+    
+    # CNAE
+    cnae_principal = models.CharField('CNAE principal', max_length=10, blank=True)
+    cnae_secundarios = models.TextField('CNAEs secundários', blank=True, help_text='Separados por vírgula')
 
     # Regime Tributário
     simples_nacional = models.BooleanField('Simples Nacional', default=False)

@@ -38,23 +38,38 @@ class MessageProcessor:
         logger.info('Processando mensagem', extra={'telefone': telefone})
         
         try:
-            # 1. RECUPERAR OU CRIAR A SESSAO
+
+            # 1. VERIFICAR TELEFONE CADASTRADO
+            from apps.contabilidade.models import UsuarioEmpresa
+            usuario_empresa = UsuarioEmpresa.objects.filter(
+                telefone=telefone,
+                is_active=True
+            ).select_related('empresa').first()
+            
+            if not usuario_empresa:
+                logger.warning('Telefone não cadastrado', extra={'telefone': telefone})
+                return (
+                    "❌ Seu telefone não está cadastrado em nosso sistema.\n\n"
+                    "Por favor, entre em contato com sua contabilidade para cadastrar seu número "
+                    "e poder emitir notas fiscais via WhatsApp."
+                )
+            # 2. RECUPERAR OU CRIAR A SESSAO
             session = self.session_manager.get_or_create_session(telefone)
 
 
-            # 2. ADICIONAR MENSAGEM DO USUARIO
+            # 3. ADICIONAR MENSAGEM DO USUARIO
             session.add_user_message(mensagem)
             
-            # 3. VERIFICAR ESTADO E ROTEAR
+            # 4. VERIFICAR ESTADO E ROTEAR
             if session.estado == SessionState.AGUARDANDO_CONFIRMACAO.value:
                 resposta = self._handle_confirmacao(session, mensagem)
             else:
                 resposta = self._processar_coleta(session, mensagem)
             
-            # 4. ADICIONAR RESPOSTA DO BOT AO CONTEXTO
+            # 5. ADICIONAR RESPOSTA DO BOT AO CONTEXTO
             session.add_bot_message(resposta)
 
-            # 5. SALVAR SESSÃO ATUALIZADA
+            # 6. SALVAR SESSÃO ATUALIZADA
             self.session_manager.save_session(session)
             logger.debug(f"{50 * '='}\n==========  INICIO DUMP SESSÃO  ========== \n\
                          \n{session.model_dump_json(indent=2)}\n{50 * '='}\n \

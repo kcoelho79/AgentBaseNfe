@@ -22,6 +22,8 @@ CORE/SESSAO
 [ ] Modulo verificar telefone
 [x] lista sessao corrigir o filed filtro telefone formato internacional
 [x] não esta funcionado expiração validar ver sessao 250126-4cf5
+[] detalhes da sessao , apos emitir a nota, nao aparece o valor na div
+notas emitida
 
 
 [x] mover templates account/admin/contabilidade para a pasta do app
@@ -39,6 +41,9 @@ mas não grava no banco (ClienteTomador)
 [] endereço tmb buscar cep - preencher os dados
 [x] campo whatsapp cadastro ususario,telefone salva sem o cod paig 
 [] cadastro não ativa usuario empresa
+
+USUARIO EMPRESA
+[] details da empresa, não aparece os dados tributos 
 
 
 NFSE
@@ -104,6 +109,11 @@ Infraestrutura
 Atualizar no Git - e salvar no servidor via SSH ou Pensar Docker
 
 versao 0.3
+
+[] IMPLEMETNAR PRIMEIO-LOGIN
+ cliente cadastrar a cotnabilidade, enquanto ele não cadastrar 1 empresa, 1 usuario - mostrat popup informando isso, etc.. 
+ mostrat para atualizar os dados da contabilidade (ter opção configuração)
+
 [ ] verificar opção de append erros origem Try, para consulta posterior - pegar erro + linha + modulo ou criar error-level tabela de código de erro
 [ ] Criar tabela de erro para debug
 

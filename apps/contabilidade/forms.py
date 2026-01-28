@@ -13,6 +13,8 @@ class EmpresaForm(forms.ModelForm):
             'nome_fantasia': forms.TextInput(attrs={'class': 'form-control'}),
             'inscricao_municipal': forms.TextInput(attrs={'class': 'form-control'}),
             'inscricao_estadual': forms.TextInput(attrs={'class': 'form-control'}),
+            'cnae_principal': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 6201-5/00'}),
+            'cnae_secundarios': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ex: 6201-5/00, 6202-3/00, 6203-1/00'}),
             'simples_nacional': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'regime_tributario': forms.Select(attrs={'class': 'form-select'}),
             'incentivo_fiscal': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
