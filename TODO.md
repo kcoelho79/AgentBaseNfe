@@ -11,18 +11,18 @@ o correto deveria mostrar somente as empresas da contabilidade atual
 
 [ ] se a sessão nao pertecer a nenhum cliente aonde ficara registrado.
 [ ] UsuarioEmpresa seu celular cadastrado em duas empresas, como o sistema sabera
-de quem é a Nota ? testar2
+de quem é a Nota ? testar a sessão ficou para um empresa, e a nota foi emitidas nas duas
 
 ADMIN
 Contabilide
-  [] empresas - deve listar inline os UsuariosEmpresas na tabela ter ter nome/telefone/email
+  [x] empresas - deve listar inline os UsuariosEmpresas na tabela ter ter nome/telefone/email
 
 
 
 CORE/SESSAO
 [ ] Modulo verificar telefone
-[ ] verificar opção de append erros origem Try, para consulta posterior - pegar erro + linha + modulo ou criar error-level tabela de código de erro
-[ ] Criar tabela de erro para debug
+[ ] lista sessao corrigir o filed filtro telefone formato internacional
+
 
 [x] mover templates account/admin/contabilidade para a pasta do app
 
@@ -53,6 +53,8 @@ NFSE
   [] criar list ClienteTomado Menu ClientesTomador tabela numero de notas emitidas
   [] ??? Pensar em lista ClienteTomador para mais de uma empresa, relacionadmento de tabela
   tabela transição clienteId, emprsas n:n notas fiscal
+  [ ] menu cliente tomador, esta mostrando de todos os clientes, deveria filtrar
+  por contabilidade
 
 Sessoes 
     [x] criar details da sessão  
@@ -100,3 +102,7 @@ Infraestrutura
 
 [ ] Plano 
 Atualizar no Git - e salvar no servidor via SSH ou Pensar Docker
+
+versao 0.3
+[ ] verificar opção de append erros origem Try, para consulta posterior - pegar erro + linha + modulo ou criar error-level tabela de código de erro
+[ ] Criar tabela de erro para debug

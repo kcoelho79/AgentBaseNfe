@@ -175,7 +175,12 @@ class ClienteTomadorListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         """Aplica filtros de busca e anota quantidade de notas."""
-        queryset = ClienteTomador.objects.annotate(
+        contabilidade = self.request.user.contabilidade
+        
+        # Filtra tomadores que têm notas emitidas por empresas da contabilidade
+        queryset = ClienteTomador.objects.filter(
+            nfse_recebidas__prestador__contabilidade=contabilidade
+        ).distinct().annotate(
             total_notas=Count('nfse_recebidas')
         ).order_by('-created_at')
         
@@ -207,14 +212,19 @@ class ClienteTomadorListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         """Adiciona estatísticas ao contexto."""
         context = super().get_context_data(**kwargs)
+        contabilidade = self.request.user.contabilidade
         
-        # Listar estados únicos para filtro
-        context['estados'] = ClienteTomador.objects.values_list(
+        # Listar estados únicos para filtro (apenas da contabilidade)
+        context['estados'] = ClienteTomador.objects.filter(
+            nfse_recebidas__prestador__contabilidade=contabilidade
+        ).distinct().values_list(
             'estado', flat=True
-        ).distinct().order_by('estado')
+        ).order_by('estado')
         
-        # Estatísticas gerais
-        context['total_tomadores'] = ClienteTomador.objects.count()
+        # Estatísticas gerais (apenas da contabilidade)
+        context['total_tomadores'] = ClienteTomador.objects.filter(
+            nfse_recebidas__prestador__contabilidade=contabilidade
+        ).distinct().count()
         
         return context
 

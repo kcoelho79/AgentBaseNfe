@@ -72,6 +72,8 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
     list_display = [
         'sessao_id',
         'telefone',
+        'usuario_nome_display',
+        'empresa_nome_display',
         'estado_badge',
         'cnpj_status_badge',
         'cnpj_display',
@@ -89,6 +91,8 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
     search_fields = [
         'sessao_id',
         'telefone',
+        'usuario_nome',
+        'empresa_nome',
         'cnpj',
         'cnpj_razao_social',
         'descricao',
@@ -112,6 +116,9 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
     readonly_fields = [
         'sessao_id',
         'telefone',
+        'usuario_nome',
+        'empresa_nome',
+        'empresa_id',
         'estado',
         'cnpj_status',
         'cnpj_extracted',
@@ -147,7 +154,7 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
     # Inlines para mensagens
     inlines = [SessionMessageInline]
 
-    # Organização dos campos no formulário de detalhe
+    # Organização dos campos no formulário de detusuario_nome', 'empresa_nome', 'empresa_id', 'alhe
     fieldsets = (
         ('Identificação', {
             'fields': ('sessao_id', 'telefone', 'estado', 'snapshot_reason', 'ttl')
@@ -184,6 +191,28 @@ class SessionSnapshotAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
     # ==================== MÉTODOS DE DISPLAY CUSTOMIZADOS ====================
+
+    def usuario_nome_display(self, obj):
+        """Exibe nome do usuário que solicitou"""
+        if obj.usuario_nome:
+            return format_html(
+                '<span style="font-weight: 500; color: #0066cc;">{}</span>',
+                obj.usuario_nome
+            )
+        return format_html('<span style="color: #999;">-</span>')
+    usuario_nome_display.short_description = 'Usuário Solicitante'
+    usuario_nome_display.admin_order_field = 'usuario_nome'
+
+    def empresa_nome_display(self, obj):
+        """Exibe nome da empresa emitente"""
+        if obj.empresa_nome:
+            return format_html(
+                '<span style="font-weight: 500; color: #006633;">{}</span>',
+                obj.empresa_nome
+            )
+        return format_html('<span style="color: #999;">-</span>')
+    empresa_nome_display.short_description = 'Empresa Emitente'
+    empresa_nome_display.admin_order_field = 'empresa_nome'
 
     def estado_badge(self, obj):
         """Exibe estado com badge colorido"""

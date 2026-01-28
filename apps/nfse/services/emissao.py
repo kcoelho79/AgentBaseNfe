@@ -5,7 +5,7 @@ import uuid
 import logging
 from datetime import datetime
 from django.utils import timezone
-from apps.nfse.models import NFSeEmissao, NFSeProcessada
+from apps.nfse.models import NFSeEmissao, NFSeProcessada, EmpresaClienteTomador
 from apps.nfse.services.receita_federal import ReceitaFederalService
 from apps.nfse.services.nfse_builder import NFSeBuilder
 from apps.nfse.services.mock_gateway import MockNFSeGateway
@@ -26,11 +26,12 @@ class NFSeEmissaoService:
         Fluxo:
         1. Busca prestador (Empresa) pelo telefone da sessão
         2. Consulta tomador na Receita Federal
-        3. Cria registro de emissão
-        4. Monta JSON
-        5. Envia para gateway (mock)
-        6. Processa retorno
-        7. Cria NFSeProcessada
+        3. Cria/atualiza vínculo Empresa-Tomador
+        4. Cria registro de emissão
+        5. Monta JSON
+        6. Envia para gateway (mock)
+        7. Processa retorno
+        8. Cria NFSeProcessada
         
         Args:
             sessao_id: ID da sessão
@@ -68,7 +69,20 @@ class NFSeEmissaoService:
         tomador = ReceitaFederalService.buscar_ou_criar_tomador(session.cnpj)
         logger.info(f"Tomador: {tomador.razao_social}")
         
-        # 4. Criar registro de emissão
+        # 4. Criar/atualizar vínculo Empresa-Tomador
+        vinculo, created = EmpresaClienteTomador.objects.get_or_create(
+            empresa=prestador,
+            cliente_tomador=tomador,
+            defaults={'is_active': True}
+        )
+        if created:
+            logger.info(f"Vínculo criado: {prestador.razao_social} → {tomador.razao_social}")
+        else:
+            # Atualiza a data da última nota (campo auto_now)
+            vinculo.save()
+            logger.info(f"Vínculo atualizado: {prestador.razao_social} → {tomador.razao_social}")
+        
+        # 5. Criar registro de emissão
         id_integracao = f"NFSE-{uuid.uuid4().hex[:8].upper()}"
         
         emissao = NFSeEmissao.objects.create(
@@ -82,12 +96,12 @@ class NFSeEmissaoService:
         )
         logger.info(f"Emissão criada: {id_integracao}")
         
-        # 5. Montar payload
+        # 6. Montar payload
         payload = NFSeBuilder.build_payload(emissao)
         emissao.payload_enviado = payload
         emissao.save()
         
-        # 6. Enviar para gateway (mock)
+        # 7. Enviar para gateway (mock)
         emissao.status = 'enviado'
         emissao.enviado_em = timezone.now()
         emissao.save()
@@ -95,16 +109,16 @@ class NFSeEmissaoService:
         logger.info(f"Enviando para gateway mock...")
         resposta = MockNFSeGateway.emitir_nfse(payload)
         
-        # 7. Processar retorno
+        # 8. Processar retorno
         emissao.resposta_gateway = resposta
         emissao.status = 'processando'
         emissao.save()
         
-        # 8. Criar NFSeProcessada
+        # 9. Criar NFSeProcessada
         nfse = cls._criar_nfse_processada(emissao, resposta)
         logger.info(f"NFSe processada criada: {nfse.numero}")
         
-        # 9. Atualizar sessão
+        # 10. Atualizar sessão
         session.id_integracao = id_integracao
         session.save()
         
