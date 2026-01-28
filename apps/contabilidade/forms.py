@@ -113,6 +113,10 @@ class UsuarioEmpresaForm(forms.ModelForm):
                 # Se não tiver código de país, assume 55
                 self.initial['telefone_codigo_pais'] = '55'
                 self.initial['telefone_numero'] = telefone_completo
+        
+        # Define is_active como True por padrão para novos usuários
+        if not self.instance.pk:
+            self.initial['is_active'] = True
 
     def clean(self):
         cleaned_data = super().clean()

@@ -118,7 +118,12 @@
 
                     <div class="mb-4">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="id_is_active" 
+                                   name="is_active" 
+                                   value="1"
+                                   {% if form.is_active.value == True or form.is_active.value == 'True' or form.is_active.value == 1 or form.is_active.value == '1' or form.is_active.value == None and not object %}checked{% endif %}>
                             <label class="form-check-label" for="id_is_active">
                                 Usuário Ativo
                             </label>

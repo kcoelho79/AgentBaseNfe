@@ -6,10 +6,17 @@ versão 0.2 = melhorias interface / log /
 
 CORRECOES/EXMEPLOS unhappy PATH
 TENANT
-[ ] ao criar noma empresa, vai para o menu list empresa e motra todas as empresas
+[X] ao criar noma empresa, vai para o menu list empresa e motra todas as empresas
 o correto deveria mostrar somente as empresas da contabilidade atual
 
-[ ] se a sesão nao pertecer a nenhum cliente aonde ficara registrado.
+[ ] se a sessão nao pertecer a nenhum cliente aonde ficara registrado.
+[ ] UsuarioEmpresa seu celular cadastrado em duas empresas, como o sistema sabera
+de quem é a Nota ? testar2
+
+ADMIN
+Contabilide
+  [] empresas - deve listar inline os UsuariosEmpresas na tabela ter ter nome/telefone/email
+
 
 
 CORE/SESSAO
@@ -30,7 +37,7 @@ APP Empresa
 [] cadastro de empresa - botao para preencher os dados busca da receita, 
 mas não grava no banco (ClienteTomador) 
 [] endereço tmb buscar cep - preencher os dados
-[ ] campo whatsapp cadastro ususario,telefone salva sem o cod paig 
+[x] campo whatsapp cadastro ususario,telefone salva sem o cod paig 
 [] cadastro não ativa usuario empresa
 
 
