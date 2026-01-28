@@ -33,6 +33,26 @@ class SessionSnapshot(models.Model):
         db_index=True,
         verbose_name='Telefone'
     )
+    
+    # Contexto do usuário/empresa (capturado no momento da criação)
+    usuario_nome = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Nome do Usuário'
+    )
+    empresa_nome = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Nome da Empresa'
+    )
+    empresa_id = models.IntegerField(
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name='ID da Empresa'
+    )
 
     # Estado da sessão
     estado = models.CharField(
@@ -248,22 +268,35 @@ class SessionSnapshot(models.Model):
         return f"{self.sessao_id} - {self.telefone} ({self.estado})"
 
     @classmethod
-    def from_session(cls, session, reason: str = 'manual') -> 'SessionSnapshot':
+    def from_session(cls, session, reason: str = 'manual', usuario_context: dict = None) -> 'SessionSnapshot':
         """
         Cria um SessionSnapshot a partir de um objeto Session (Pydantic).
 
         Args:
             session: Objeto Session do Pydantic
             reason: Motivo do snapshot (data_complete, confirmed, cancelled, expired, error)
+            usuario_context: Dict opcional com nome, empresa_nome e empresa_id
 
         Returns:
             Instância de SessionSnapshot (não salva automaticamente)
         """
         invoice = session.invoice_data
+        
+        # Extrai contexto do usuário se fornecido
+        usuario_nome = None
+        empresa_nome = None
+        empresa_id = None
+        if usuario_context:
+            usuario_nome = usuario_context.get('nome')
+            empresa_nome = usuario_context.get('empresa_nome')
+            empresa_id = usuario_context.get('empresa_id')
 
         return cls(
             sessao_id=session.sessao_id,
             telefone=session.telefone,
+            usuario_nome=usuario_nome,
+            empresa_nome=empresa_nome,
+            empresa_id=empresa_id,
             estado=session.estado,
             # CNPJ
             cnpj_status=invoice.cnpj.status,

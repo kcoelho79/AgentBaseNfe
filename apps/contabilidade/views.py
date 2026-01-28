@@ -101,19 +101,27 @@ class EmpresaListView(TenantMixin, ListView):
             total_notas=Count('nfse_emitidas', distinct=True)
         )
         
-        # Adicionar contagem de sessões manualmente via empresa_id
+        # Adicionar contagem de sessões manualmente via CNPJ
         empresas = list(qs)
-        empresa_ids = [e.id for e in empresas]
         
-        if empresa_ids:
-            sessoes_count = SessionSnapshot.objects.filter(
-                empresa_id__in=empresa_ids
-            ).values('empresa_id').annotate(total=Count('id'))
-            
-            sessoes_dict = {s['empresa_id']: s['total'] for s in sessoes_count}
-            
+        if empresas:
+            # Normaliza CNPJs das empresas (remove formatação)
+            cnpjs_empresas = {}
             for empresa in empresas:
-                empresa.total_sessoes = sessoes_dict.get(empresa.id, 0)
+                cnpj_limpo = empresa.cpf_cnpj.replace('.', '').replace('/', '').replace('-', '')
+                cnpjs_empresas[cnpj_limpo] = empresa
+                empresa.total_sessoes = 0  # Inicializa
+            
+            # Busca sessões por CNPJ
+            sessoes_count = SessionSnapshot.objects.filter(
+                cnpj__in=list(cnpjs_empresas.keys())
+            ).values('cnpj').annotate(total=Count('id'))
+            
+            # Mapeia contagem de volta para as empresas
+            for sessao in sessoes_count:
+                cnpj = sessao['cnpj']
+                if cnpj in cnpjs_empresas:
+                    cnpjs_empresas[cnpj].total_sessoes = sessao['total']
         
         return empresas
 
