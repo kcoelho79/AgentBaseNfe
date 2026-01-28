@@ -4,6 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import FormView, TemplateView, UpdateView
 from django.contrib import messages
+from django.db import IntegrityError
 
 from .forms import LoginForm, RegisterForm, ProfileForm
 
@@ -50,25 +51,38 @@ class RegisterView(FormView):
     def form_valid(self, form):
         from apps.contabilidade.models import Contabilidade
 
-        # Criar contabilidade
-        contabilidade = Contabilidade.objects.create(
-            cnpj=form.cleaned_data['contabilidade_cnpj'],
-            razao_social=form.cleaned_data['contabilidade_razao_social'],
-            email=form.cleaned_data['email'],
-        )
+        try:
+            # Criar contabilidade
+            contabilidade = Contabilidade.objects.create(
+                cnpj=form.cleaned_data['contabilidade_cnpj'],
+                razao_social=form.cleaned_data['contabilidade_razao_social'],
+                email=form.cleaned_data['email'],
+            )
 
-        # Criar usuário admin
-        user = form.save(commit=False)
-        user.set_password(form.cleaned_data['password'])
-        user.contabilidade = contabilidade
-        user.role = 'admin'
-        user.save()
+            # Criar usuário admin
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.contabilidade = contabilidade
+            user.role = 'admin'
+            user.save()
 
-        messages.success(
-            self.request,
-            'Conta criada com sucesso! Faça login para continuar.'
-        )
-        return super().form_valid(form)
+            messages.success(
+                self.request,
+                'Conta criada com sucesso! Faça login para continuar.'
+            )
+            return super().form_valid(form)
+            
+        except IntegrityError as e:
+            # Verificar se é erro de CNPJ duplicado
+            if 'contabilidade_contabilidade.cnpj' in str(e):
+                form.add_error(
+                    'contabilidade_cnpj',
+                    'Este CNPJ já está cadastrado no sistema. Entre em contato com o suporte se precisar de ajuda.'
+                )
+            else:
+                form.add_error(None, 'Erro ao criar conta. Tente novamente.')
+            
+            return self.form_invalid(form)
 
 
 class ProfileView(LoginRequiredMixin, UpdateView):
