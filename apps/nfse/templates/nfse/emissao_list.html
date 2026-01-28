@@ -172,8 +172,9 @@
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 {% if emissao.nota_processada %}
-                                <a href="#" class="btn btn-outline-success" 
-                                   data-bs-toggle="tooltip" title="Ver NFSe">
+                                <a href="{% url 'nfse:processada_list' %}?numero={{ emissao.nota_processada.numero }}" 
+                                   class="btn btn-outline-success" 
+                                   data-bs-toggle="tooltip" title="Ver NFSe Autorizada">
                                     <i class="bi bi-file-earmark-pdf"></i>
                                 </a>
                                 {% endif %}
