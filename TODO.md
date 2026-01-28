@@ -10,8 +10,7 @@ TENANT
 o correto deveria mostrar somente as empresas da contabilidade atual
 
 [ ] se a sessão nao pertecer a nenhum cliente aonde ficara registrado.
-[ ] UsuarioEmpresa seu celular cadastrado em duas empresas, como o sistema sabera
-de quem é a Nota ? 
+[ ] UsuarioEmpresa seu celular cadastrado em duas empresas, nao permitir 
 
 ADMIN
 Contabilide

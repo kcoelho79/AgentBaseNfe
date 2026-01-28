@@ -130,7 +130,27 @@ class UsuarioEmpresaForm(forms.ModelForm):
         telefone_numero = ''.join(filter(str.isdigit, telefone_numero))
         
         # Concatena e salva no campo telefone do modelo
-        cleaned_data['telefone'] = codigo_pais + telefone_numero
+        telefone_completo = codigo_pais + telefone_numero
+        cleaned_data['telefone'] = telefone_completo
+        
+        # Validar se telefone já existe em outro usuário ativo
+        if telefone_completo:
+            qs = UsuarioEmpresa.objects.filter(
+                telefone=telefone_completo,
+                is_active=True
+            )
+            
+            # Se está editando, exclui o próprio registro
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            
+            if qs.exists():
+                usuario_existente = qs.first()
+                raise forms.ValidationError(
+                    f'⚠️ Este telefone já está cadastrado para "{usuario_existente.nome}" '
+                    f'na empresa "{usuario_existente.empresa.razao_social}". '
+                    f'Um telefone só pode estar ativo em uma empresa por vez.'
+                )
         
         return cleaned_data
     

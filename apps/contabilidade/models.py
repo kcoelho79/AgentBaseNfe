@@ -170,7 +170,14 @@ class UsuarioEmpresa(models.Model):
         verbose_name = 'usuário da empresa'
         verbose_name_plural = 'usuários da empresa'
         ordering = ['nome']
-        unique_together = ['empresa', 'telefone']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['telefone'],
+                condition=models.Q(is_active=True),
+                name='unique_telefone_ativo',
+                violation_error_message='Este telefone já está cadastrado em outra empresa ativa.'
+            )
+        ]
 
     def __str__(self):
         return f'{self.nome} - {self.telefone}'
