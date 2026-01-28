@@ -30,7 +30,7 @@ APP Empresa
 [] cadastro de empresa - botao para preencher os dados busca da receita, 
 mas não grava no banco (ClienteTomador) 
 [] endereço tmb buscar cep - preencher os dados
-[ ] campo whatsapp cadastro ususario, 
+[ ] campo whatsapp cadastro ususario,telefone salva sem o cod paig 
 [] cadastro não ativa usuario empresa
 
 

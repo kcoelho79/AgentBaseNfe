@@ -50,23 +50,44 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="id_telefone" class="form-label">Telefone WhatsApp <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-transparent">
-                                <i class="bi bi-whatsapp text-success"></i>
-                            </span>
-                            <input type="text"
-                                   class="form-control {% if form.telefone.errors %}is-invalid{% endif %}"
-                                   id="id_telefone"
-                                   name="telefone"
-                                   value="{{ form.telefone.value|default:'' }}"
-                                   placeholder="5511999999999"
-                                   required>
+                        <label class="form-label">Telefone WhatsApp <span class="text-danger">*</span></label>
+                        <div class="row g-2">
+                            <div class="col-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">+</span>
+                                    <input type="text"
+                                           class="form-control {% if form.telefone_codigo_pais.errors %}is-invalid{% endif %}"
+                                           id="id_telefone_codigo_pais"
+                                           name="telefone_codigo_pais"
+                                           value="{{ form.telefone_codigo_pais.value|default:'55' }}"
+                                           maxlength="3"
+                                           placeholder="55">
+                                </div>
+                                {% if form.telefone_codigo_pais.errors %}
+                                    <div class="text-danger small mt-1">{{ form.telefone_codigo_pais.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-9">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent">
+                                        <i class="bi bi-whatsapp text-success"></i>
+                                    </span>
+                                    <input type="text"
+                                           class="form-control {% if form.telefone_numero.errors %}is-invalid{% endif %}"
+                                           id="id_telefone_numero"
+                                           name="telefone_numero"
+                                           value="{{ form.telefone_numero.value|default:'' }}"
+                                           placeholder="1199999-9999"
+                                           required>
+                                </div>
+                                {% if form.telefone_numero.errors %}
+                                    <div class="text-danger small mt-1">{{ form.telefone_numero.errors.0 }}</div>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% if form.telefone.errors %}
-                            <div class="text-danger small mt-1">{{ form.telefone.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">Formato: código do país + DDD + número (ex: 5511999999999)</div>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>Será salvo como: <strong id="telefone_preview">+55</strong>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -83,22 +104,22 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="id_cargo" class="form-label">Cargo</label>
+                        <label for="id_cpf" class="form-label">CPF</label>
                         <input type="text"
-                               class="form-control {% if form.cargo.errors %}is-invalid{% endif %}"
-                               id="id_cargo"
-                               name="cargo"
-                               value="{{ form.cargo.value|default:'' }}"
-                               placeholder="Ex: Gerente, Diretor, Contador...">
-                        {% if form.cargo.errors %}
-                            <div class="invalid-feedback">{{ form.cargo.errors.0 }}</div>
+                               class="form-control {% if form.cpf.errors %}is-invalid{% endif %}"
+                               id="id_cpf"
+                               name="cpf"
+                               value="{{ form.cpf.value|default:'' }}"
+                               placeholder="000.000.000-00">
+                        {% if form.cpf.errors %}
+                            <div class="invalid-feedback">{{ form.cpf.errors.0 }}</div>
                         {% endif %}
                     </div>
 
                     <div class="mb-4">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="id_ativo" name="ativo" {% if form.ativo.value %}checked{% endif %}>
-                            <label class="form-check-label" for="id_ativo">
+                            <input class="form-check-input" type="checkbox" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+                            <label class="form-check-label" for="id_is_active">
                                 Usuário Ativo
                             </label>
                         </div>
@@ -126,4 +147,33 @@
         </div>
     </div>
 </div>
+
+<script>
+// Preview do telefone completo
+function updateTelefonePreview() {
+    const codigoPais = document.getElementById('id_telefone_codigo_pais').value || '55';
+    const numero = document.getElementById('id_telefone_numero').value || '';
+    const preview = document.getElementById('telefone_preview');
+    
+    // Remove caracteres não numéricos
+    const codigoLimpo = codigoPais.replace(/\D/g, '');
+    const numeroLimpo = numero.replace(/\D/g, '');
+    
+    preview.textContent = '+' + codigoLimpo + numeroLimpo;
+}
+
+// Atualiza o preview quando o usuário digita
+document.addEventListener('DOMContentLoaded', function() {
+    const codigoPaisInput = document.getElementById('id_telefone_codigo_pais');
+    const numeroInput = document.getElementById('id_telefone_numero');
+    
+    if (codigoPaisInput && numeroInput) {
+        codigoPaisInput.addEventListener('input', updateTelefonePreview);
+        numeroInput.addEventListener('input', updateTelefonePreview);
+        
+        // Atualiza na carga da página
+        updateTelefonePreview();
+    }
+});
+</script>
 {% endblock %}

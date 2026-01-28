@@ -66,13 +66,28 @@ class EmpresaForm(forms.ModelForm):
 
 class UsuarioEmpresaForm(forms.ModelForm):
     '''Formulário para cadastro e edição de usuário da empresa.'''
+    
+    # Campos auxiliares para o formulário (não salvos diretamente no banco)
+    telefone_codigo_pais = forms.CharField(
+        label='Código País',
+        max_length=3,
+        initial='55',
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'maxlength': 3, 'placeholder': '55'})
+    )
+    telefone_numero = forms.CharField(
+        label='Número',
+        max_length=15,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '1199999-9999'})
+    )
+    
     class Meta:
         model = UsuarioEmpresa
-        exclude = ['empresa', 'created_at', 'updated_at']
+        exclude = ['empresa', 'created_at', 'updated_at', 'telefone']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'cpf': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'cep': forms.TextInput(attrs={'class': 'form-control'}),
             'logradouro': forms.TextInput(attrs={'class': 'form-control'}),
@@ -83,6 +98,53 @@ class UsuarioEmpresaForm(forms.ModelForm):
             'estado': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Se está editando, separa o telefone completo em código país + número
+        if self.instance and self.instance.pk and self.instance.telefone:
+            telefone_completo = self.instance.telefone
+            # Assume que os primeiros 2 dígitos são o código do país (55)
+            if len(telefone_completo) >= 12:  # 55 + 11 (DDD+número)
+                self.initial['telefone_codigo_pais'] = telefone_completo[:2]
+                self.initial['telefone_numero'] = telefone_completo[2:]
+            else:
+                # Se não tiver código de país, assume 55
+                self.initial['telefone_codigo_pais'] = '55'
+                self.initial['telefone_numero'] = telefone_completo
+
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Concatena código país + número e salva no campo telefone
+        codigo_pais = cleaned_data.get('telefone_codigo_pais', '55')
+        telefone_numero = cleaned_data.get('telefone_numero', '')
+        
+        # Remove caracteres não numéricos
+        codigo_pais = ''.join(filter(str.isdigit, codigo_pais)) or '55'
+        telefone_numero = ''.join(filter(str.isdigit, telefone_numero))
+        
+        # Concatena e salva no campo telefone do modelo
+        cleaned_data['telefone'] = codigo_pais + telefone_numero
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Garante que o telefone foi concatenado corretamente
+        codigo_pais = self.cleaned_data.get('telefone_codigo_pais', '55')
+        telefone_numero = self.cleaned_data.get('telefone_numero', '')
+        
+        codigo_pais = ''.join(filter(str.isdigit, codigo_pais)) or '55'
+        telefone_numero = ''.join(filter(str.isdigit, telefone_numero))
+        
+        instance.telefone = codigo_pais + telefone_numero
+        
+        if commit:
+            instance.save()
+        return instance
 
 
 class CertificadoForm(forms.ModelForm):
