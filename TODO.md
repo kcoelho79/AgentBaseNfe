@@ -4,6 +4,19 @@ Geral
 versão 0.2 = melhorias interface / log / 
 
 
+CORRECOES/EXMEPLOS unhappy PATH
+TENANT
+[ ] ao criar noma empresa, vai para o menu list empresa e motra todas as empresas
+o correto deveria mostrar somente as empresas da contabilidade atual
+
+[ ] se a sesão nao pertecer a nenhum cliente aonde ficara registrado.
+
+
+CORE/SESSAO
+[ ] Modulo verificar telefone
+[ ] verificar opção de append erros origem Try, para consulta posterior - pegar erro + linha + modulo ou criar error-level tabela de código de erro
+[ ] Criar tabela de erro para debug
+
 [x] mover templates account/admin/contabilidade para a pasta do app
 
 APP Empresa
@@ -14,6 +27,11 @@ APP Empresa
 [x] menu empresa details menu navtabs incluis os seguintes menus
   [x] Notas fiscal - lista todas as notas da empresa
   [x] Clientes Tomadores - lista ClientesTomadores dessa empresa
+[] cadastro de empresa - botao para preencher os dados busca da receita, 
+mas não grava no banco (ClienteTomador) 
+[] endereço tmb buscar cep - preencher os dados
+[ ] campo whatsapp cadastro ususario, 
+[] cadastro não ativa usuario empresa
 
 
 NFSE
@@ -22,8 +40,8 @@ NFSE
   [x] atualizar menu home notafiscal/emitidas/processadas
   [x] visualizar no menu empresas - notas ficais (notas emitidas)
   [x] criar consulta cnpj
-  [] alterar o model clienteTomador => CadastroReceitaCNPJ sugerir
-  [] criar model ClienteTomador CNPJ Fk/ EmpresaID/ Created, Updated, NotaFiscalEfetiva 1:n
+  [x]  Mantive alterar o model clienteTomador => CadastroReceitaCNPJ sugerir
+  [x] criar model ClienteTomador CNPJ Fk/ EmpresaID/ Created, Updated, NotaFiscalEfetiva 1:n
   [] criar list ClienteTomador na aba Empresas 
   [] criar list ClienteTomado Menu ClientesTomador tabela numero de notas emitidas
   [] ??? Pensar em lista ClienteTomador para mais de uma empresa, relacionadmento de tabela

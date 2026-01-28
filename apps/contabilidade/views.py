@@ -72,31 +72,48 @@ class EmpresaListView(TenantMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        from django.db.models import Count
+        from django.db.models import Count, Q
         from apps.core.db_models import SessionSnapshot
         
+        # IMPORTANTE: super() chama TenantMixin que filtra por contabilidade
         qs = super().get_queryset()
+        
+        # Filtro de busca
         search = self.request.GET.get('search')
         if search:
-            qs = qs.filter(razao_social__icontains=search) | qs.filter(cpf_cnpj__icontains=search)
+            qs = qs.filter(
+                Q(razao_social__icontains=search) | 
+                Q(cpf_cnpj__icontains=search) |
+                Q(nome_fantasia__icontains=search)
+            )
         
-        # Anotar com totalizadores
+        # Filtro de status
+        status = self.request.GET.get('status')
+        if status == '1':
+            qs = qs.filter(is_active=True)
+        elif status == '0':
+            qs = qs.filter(is_active=False)
+        
+        # Anotar com totalizadores via annotate (otimizado)
         qs = qs.annotate(
-            total_usuarios=Count('usuarios_autorizados', distinct=True)
+            total_usuarios=Count('usuarios_autorizados', distinct=True),
+            total_clientes=Count('clientes_tomadores_vinculados', distinct=True),
+            total_notas=Count('nfse_emitidas', distinct=True)
         )
         
         # Adicionar contagem de sessões manualmente via empresa_id
         empresas = list(qs)
         empresa_ids = [e.id for e in empresas]
         
-        sessoes_count = SessionSnapshot.objects.filter(
-            empresa_id__in=empresa_ids
-        ).values('empresa_id').annotate(total=Count('id'))
-        
-        sessoes_dict = {s['empresa_id']: s['total'] for s in sessoes_count}
-        
-        for empresa in empresas:
-            empresa.total_sessoes = sessoes_dict.get(empresa.id, 0)
+        if empresa_ids:
+            sessoes_count = SessionSnapshot.objects.filter(
+                empresa_id__in=empresa_ids
+            ).values('empresa_id').annotate(total=Count('id'))
+            
+            sessoes_dict = {s['empresa_id']: s['total'] for s in sessoes_count}
+            
+            for empresa in empresas:
+                empresa.total_sessoes = sessoes_dict.get(empresa.id, 0)
         
         return empresas
 

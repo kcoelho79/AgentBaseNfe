@@ -72,13 +72,13 @@
                         <td class="text-center">
                             <a href="#" class="text-decoration-none" title="Ver clientes">
                                 <i class="bi bi-people text-primary me-1"></i>
-                                <span class="badge bg-primary rounded-pill">0</span>
+                                <span class="badge bg-primary rounded-pill">{{ empresa.total_clientes|default:0 }}</span>
                             </a>
                         </td>
                         <td class="text-center">
                             <a href="#" class="text-decoration-none" title="Ver notas fiscais">
                                 <i class="bi bi-file-earmark-text text-success me-1"></i>
-                                <span class="badge bg-success rounded-pill">0</span>
+                                <span class="badge bg-success rounded-pill">{{ empresa.total_notas|default:0 }}</span>
                             </a>
                         </td>
                         <td class="text-center">

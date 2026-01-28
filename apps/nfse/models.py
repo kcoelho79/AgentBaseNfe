@@ -46,6 +46,133 @@ class ClienteTomador(models.Model):
         return f"{self.cnpj} - {self.razao_social}"
 
 
+class EmpresaClienteTomador(models.Model):
+    """
+    Relacionamento entre Empresa (prestadora) e ClienteTomador.
+    Registra quando uma empresa trabalha com um cliente tomador.
+    Evita duplicação de dados do cliente e permite rastreamento do relacionamento.
+    """
+    empresa = models.ForeignKey(
+        'contabilidade.Empresa',
+        on_delete=models.CASCADE,
+        related_name='clientes_tomadores_vinculados',
+        verbose_name='Empresa Prestadora'
+    )
+    cliente_tomador = models.ForeignKey(
+        'ClienteTomador',
+        on_delete=models.PROTECT,  # PROTECT: não permite deletar se tiver vínculos
+        related_name='empresas_vinculadas',
+        verbose_name='Cliente Tomador'
+    )
+    
+    # Metadados do relacionamento
+    primeira_nota_em = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name='Primeira Nota Emitida em',
+        help_text='Data da primeira nota emitida pela empresa para este cliente'
+    )
+    ultima_nota_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Última Nota Emitida em',
+        help_text='Data da última nota emitida pela empresa para este cliente'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Relacionamento Ativo',
+        help_text='Indica se a empresa ainda trabalha com este cliente'
+    )
+    
+    # Campos opcionais para customização por empresa
+    apelido = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Apelido do Cliente',
+        help_text='Nome customizado que a empresa usa internamente para este cliente'
+    )
+    observacoes = models.TextField(
+        blank=True,
+        verbose_name='Observações Internas',
+        help_text='Anotações da empresa sobre este cliente'
+    )
+    
+    class Meta:
+        verbose_name = 'Empresa-Cliente Tomador'
+        verbose_name_plural = 'Empresas-Clientes Tomadores'
+        unique_together = [['empresa', 'cliente_tomador']]
+        indexes = [
+            models.Index(fields=['empresa', 'cliente_tomador']),
+            models.Index(fields=['empresa', 'is_active']),
+            models.Index(fields=['-ultima_nota_em']),
+        ]
+        ordering = ['-ultima_nota_em']
+    
+    def __str__(self):
+        if self.apelido:
+            return f"{self.empresa.razao_social} → {self.apelido}"
+        return f"{self.empresa.razao_social} → {self.cliente_tomador.razao_social}"
+    
+    # ==================== MÉTODOS DE AUDITORIA ====================
+    
+    def get_notas_emitidas(self):
+        """
+        Retorna QuerySet com todas as notas emitidas pela empresa para este cliente.
+        Permite filtros adicionais, paginação, ordenação, etc.
+        """
+        return NFSeEmissao.objects.filter(
+            prestador=self.empresa,
+            tomador=self.cliente_tomador
+        ).select_related('session', 'prestador', 'tomador')
+    
+    @property
+    def total_notas(self):
+        """Total de notas emitidas (calculado dinamicamente)."""
+        return self.get_notas_emitidas().count()
+    
+    @property
+    def total_valor_emitido(self):
+        """Soma total dos valores de todas as notas emitidas."""
+        from django.db.models import Sum
+        resultado = self.get_notas_emitidas().aggregate(total=Sum('valor_servico'))
+        return resultado['total'] or 0
+    
+    @property
+    def ultima_nota(self):
+        """Retorna a última nota emitida (ou None)."""
+        return self.get_notas_emitidas().first()
+    
+    def notas_por_periodo(self, data_inicio, data_fim):
+        """Retorna notas emitidas em um período específico."""
+        return self.get_notas_emitidas().filter(
+            created_at__range=[data_inicio, data_fim]
+        )
+    
+    def notas_por_status(self, status):
+        """Retorna notas filtradas por status."""
+        return self.get_notas_emitidas().filter(status=status)
+    
+    def estatisticas(self):
+        """Retorna dicionário com estatísticas completas do relacionamento."""
+        from django.db.models import Count, Sum, Avg
+        
+        notas = self.get_notas_emitidas()
+        stats = notas.aggregate(
+            total_notas=Count('id'),
+            valor_total=Sum('valor_servico'),
+            valor_medio=Avg('valor_servico'),
+        )
+        
+        # Notas por status
+        stats['por_status'] = dict(
+            notas.values('status').annotate(count=Count('id')).values_list('status', 'count')
+        )
+        
+        # Primeira e última nota
+        stats['primeira_nota_em'] = self.primeira_nota_em
+        stats['ultima_nota_em'] = self.ultima_nota_em
+        
+        return stats
+
+
 class NFSeEmissao(models.Model):
     """Registro de emissão de NFSe (antes do envio)."""
     
