@@ -105,9 +105,9 @@
             <div class="card bg-transparent border-secondary">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted d-block">Contabilidade</small>
-                    <span class="text-white small">
+                    <span class="text-primary small">
                         {% if user.contabilidade %}
-                            {{ user.contabilidade.nome|truncatechars:20 }}
+                            {{ user.contabilidade|truncatechars:20 }}
                         {% else %}
                             Não vinculado
                         {% endif %}
