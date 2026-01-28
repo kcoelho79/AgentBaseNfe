@@ -300,10 +300,13 @@ class SessaoListView(LoginRequiredMixin, ListView):
 
         qs = SessionSnapshot.objects.filter(telefone__in=telefones)
 
-        # Filtro por telefone
+        # Filtro por telefone (remove caracteres não numéricos)
         telefone_busca = self.request.GET.get('telefone')
         if telefone_busca:
-            qs = qs.filter(telefone__icontains=telefone_busca)
+            # Limpar telefone: remover tudo exceto dígitos
+            telefone_limpo = ''.join(filter(str.isdigit, telefone_busca))
+            if telefone_limpo:
+                qs = qs.filter(telefone__icontains=telefone_limpo)
         
         # Filtro por nome da empresa
         empresa_busca = self.request.GET.get('empresa')

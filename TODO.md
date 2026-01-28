@@ -11,7 +11,7 @@ o correto deveria mostrar somente as empresas da contabilidade atual
 
 [ ] se a sessão nao pertecer a nenhum cliente aonde ficara registrado.
 [ ] UsuarioEmpresa seu celular cadastrado em duas empresas, como o sistema sabera
-de quem é a Nota ? testar a sessão ficou para um empresa, e a nota foi emitidas nas duas
+de quem é a Nota ? 
 
 ADMIN
 Contabilide
@@ -21,7 +21,8 @@ Contabilide
 
 CORE/SESSAO
 [ ] Modulo verificar telefone
-[ ] lista sessao corrigir o filed filtro telefone formato internacional
+[x] lista sessao corrigir o filed filtro telefone formato internacional
+[x] não esta funcionado expiração validar ver sessao 250126-4cf5
 
 
 [x] mover templates account/admin/contabilidade para a pasta do app
@@ -106,3 +107,10 @@ Atualizar no Git - e salvar no servidor via SSH ou Pensar Docker
 versao 0.3
 [ ] verificar opção de append erros origem Try, para consulta posterior - pegar erro + linha + modulo ou criar error-level tabela de código de erro
 [ ] Criar tabela de erro para debug
+
+Cront tab
+# Editar crontab
+crontab -e
+
+# Adicionar linha (executar a cada hora):
+0 * * * * cd /home/kleber/projetos/AgentBase/mensageria/agentNfe && /caminho/do/python manage.py expire_sessions
