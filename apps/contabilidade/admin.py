@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db.models import Count, Sum
 from .models import Contabilidade, Empresa, UsuarioEmpresa, Certificado
 
 
@@ -15,7 +16,16 @@ class UsuarioEmpresaInline(admin.TabularInline):
 @admin.register(Contabilidade)
 class ContabilidadeAdmin(admin.ModelAdmin):
     '''Admin para Contabilidade.'''
-    list_display = ['razao_social', 'cnpj', 'email', 'total_empresas', 'is_active', 'created_at']
+    list_display = ['razao_social', 'cnpj', 'usuario_responsavel', 'total_empresas', 'total_notas', 'soma_total_notas', 'criado_em_formatado', 'is_active']
+    def usuario_responsavel(self, obj):
+        # Busca o primeiro usuário ativo da primeira empresa da contabilidade
+        empresa = obj.empresas.first()
+        if empresa:
+            usuario = empresa.usuarios_autorizados.filter(is_active=True).first()
+            if usuario:
+                return usuario.nome
+        return '-'
+    usuario_responsavel.short_description = 'Usuário Responsável'
     list_filter = ['is_active', 'estado']
     search_fields = ['razao_social', 'cnpj', 'email']
     ordering = ['razao_social']
@@ -37,10 +47,35 @@ class ContabilidadeAdmin(admin.ModelAdmin):
         }),
     )
     
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(
+            _total_notas=Count('empresas__nfse_emitidas', distinct=True),
+            _soma_total=Sum('empresas__nfse_emitidas__valor_servico')
+        )
+    
     def total_empresas(self, obj):
         count = obj.empresas.count()
         return format_html('<span style="font-weight: bold;">{}</span>', count)
     total_empresas.short_description = 'Total Empresas'
+    
+    def total_notas(self, obj):
+        total = obj._total_notas if hasattr(obj, '_total_notas') else 0
+        return format_html('<span style="font-weight: bold; color: #0066cc;">{}</span>', total)
+    total_notas.short_description = 'Total Notas'
+    total_notas.admin_order_field = '_total_notas'
+    
+    def soma_total_notas(self, obj):
+        soma = obj._soma_total if hasattr(obj, '_soma_total') and obj._soma_total else 0
+        valor_formatado = f'R$ {soma:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+        return format_html('<span style="font-weight: bold; color: #009900;">{}</span>', valor_formatado)
+    soma_total_notas.short_description = 'Soma Total'
+    soma_total_notas.admin_order_field = '_soma_total'
+    
+    def criado_em_formatado(self, obj):
+        return obj.created_at.strftime('%d/%m/%Y')
+    criado_em_formatado.short_description = 'Criado Em'
+    criado_em_formatado.admin_order_field = 'created_at'
 
 
 @admin.register(Empresa)

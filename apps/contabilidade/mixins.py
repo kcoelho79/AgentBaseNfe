@@ -15,7 +15,7 @@ class TenantMixin(LoginRequiredMixin):
         return qs.none()
 
     def form_valid(self, form):
-        if hasattr(form.instance, 'contabilidade'):
+        if hasattr(form, 'instance') and hasattr(form.instance, 'contabilidade'):
             form.instance.contabilidade = self.request.user.contabilidade
         return super().form_valid(form)
 
@@ -44,5 +44,6 @@ class EmpresaContextMixin(LoginRequiredMixin):
         return qs.filter(empresa=self.get_empresa())
 
     def form_valid(self, form):
-        form.instance.empresa = self.get_empresa()
+        if hasattr(form, 'instance'):
+            form.instance.empresa = self.get_empresa()
         return super().form_valid(form)

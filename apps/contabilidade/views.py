@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.db import models
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
@@ -226,8 +227,15 @@ class EmpresaDeleteView(TenantMixin, DeleteView):
     success_url = reverse_lazy('contabilidade:empresa_list')
 
     def form_valid(self, form):
-        messages.success(self.request, 'Empresa excluída com sucesso!')
-        return super().form_valid(form)
+        try:
+            messages.success(self.request, 'Empresa excluída com sucesso!')
+            return super().form_valid(form)
+        except models.ProtectedError:
+            messages.error(
+                self.request,
+                'Não é possível excluir esta empresa pois existem notas fiscais vinculadas a ela.'
+            )
+            return redirect(self.get_success_url())
 
 
 # =============================================================================
