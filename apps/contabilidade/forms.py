@@ -1,5 +1,5 @@
 from django import forms
-from .models import Empresa, UsuarioEmpresa, Certificado
+from .models import Empresa, UsuarioEmpresa, Certificado, Contabilidade
 
 
 class EmpresaForm(forms.ModelForm):
@@ -193,3 +193,25 @@ class CertificadoForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['arquivo'].required = False
             self.fields['senha'].required = False
+
+
+class ContabilidadeForm(forms.ModelForm):
+    '''Formulário para edição da contabilidade.'''
+    class Meta:
+        model = Contabilidade
+        exclude = ['cnpj', 'created_at', 'updated_at']
+        widgets = {
+            'razao_social': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome_fantasia': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefone_ddd': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2, 'placeholder': '11'}),
+            'telefone_numero': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '99999-9999'}),
+            'cep': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '00000-000'}),
+            'logradouro': forms.TextInput(attrs={'class': 'form-control'}),
+            'numero': forms.TextInput(attrs={'class': 'form-control'}),
+            'complemento': forms.TextInput(attrs={'class': 'form-control'}),
+            'bairro': forms.TextInput(attrs={'class': 'form-control'}),
+            'cidade': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2, 'placeholder': 'SP'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

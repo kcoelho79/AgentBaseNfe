@@ -32,8 +32,14 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">
+            <i class="bi bi-people me-2"></i>Clientes
+            <span class="badge bg-secondary ms-1">{{ total_clientes }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button" role="tab">
-            <i class="bi bi-people me-2"></i>Usuários
+            <i class="bi bi-person-badge me-2"></i>Usuários
             <span class="badge bg-secondary ms-1">{{ total_usuarios }}</span>
         </button>
     </li>
@@ -158,6 +164,61 @@
                             <dd class="col-12">{{ empresa.updated_at|date:"d/m/Y H:i" }}</dd>
                         </dl>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Clientes -->
+    <div class="tab-pane fade" id="clientes" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Clientes Tomadores</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>CNPJ</th>
+                                <th>Razão Social</th>
+                                <th class="text-center">Total Notas</th>
+                                <th class="text-end">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes_tomadores %}
+                            <tr>
+                                <td><code>{{ cliente.cnpj }}</code></td>
+                                <td>
+                                    <strong>{{ cliente.razao_social|truncatechars:40 }}</strong>
+                                    {% if cliente.nome_fantasia %}
+                                    <small class="d-block text-muted">{{ cliente.nome_fantasia|truncatechars:35 }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'nfse:emissao_list' %}?prestador={{ empresa.pk }}&tomador={{ cliente.cnpj }}" 
+                                       class="badge bg-success text-decoration-none"
+                                       title="Ver notas emitidas para este cliente">
+                                        {{ cliente.total_notas }}
+                                        <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    </a>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-success">R$ {{ cliente.valor_total|floatformat:2|default:"0,00" }}</strong>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                                    <p class="text-muted mb-0">Nenhum cliente tomador encontrado</p>
+                                    <small class="text-muted">Clientes aparecerão aqui após a primeira emissão de nota</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

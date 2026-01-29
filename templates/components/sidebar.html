@@ -102,18 +102,21 @@
 
         <!-- Info Footer -->
         <div class="mt-4 px-3">
-            <div class="card bg-transparent border-secondary">
-                <div class="card-body py-2 px-3">
-                    <small class="text-muted d-block">Contabilidade</small>
-                    <span class="text-primary small">
-                        {% if user.contabilidade %}
-                            {{ user.contabilidade|truncatechars:20 }}
-                        {% else %}
-                            Não vinculado
-                        {% endif %}
-                    </span>
+            <a href="{% url 'contabilidade:contabilidade_update' %}" class="text-decoration-none">
+                <div class="card bg-transparent border-secondary">
+                    <div class="card-body py-2 px-3">
+                        <small class="text-muted d-block">Contabilidade</small>
+                        <span class="text-primary small">
+                            {% if user.contabilidade %}
+                                {{ user.contabilidade|truncatechars:20 }}
+                            {% else %}
+                                Não vinculado
+                            {% endif %}
+                        </span>
+                        <i class="bi bi-pencil-square float-end text-white-50"></i>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 </nav>

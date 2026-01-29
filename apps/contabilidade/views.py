@@ -13,8 +13,8 @@ from datetime import timedelta
 import logging
 
 from .mixins import TenantMixin, EmpresaContextMixin
-from .models import Empresa, UsuarioEmpresa, Certificado
-from .forms import EmpresaForm, UsuarioEmpresaForm, CertificadoForm
+from .models import Empresa, UsuarioEmpresa, Certificado, Contabilidade
+from .forms import EmpresaForm, UsuarioEmpresaForm, CertificadoForm, ContabilidadeForm
 from apps.account.forms import UserForm
 from apps.nfse.services.receita_federal import ReceitaFederalService
 
@@ -187,9 +187,24 @@ class EmpresaDetailView(TenantMixin, DetailView):
     context_object_name = 'empresa'
 
     def get_context_data(self, **kwargs):
+        from django.db.models import Sum, Count
+        from apps.nfse.models import ClienteTomador, NFSeEmissao
+        
         context = super().get_context_data(**kwargs)
         context['total_usuarios'] = self.object.usuarios_autorizados.filter(is_active=True).count()
         context['total_certificados'] = self.object.certificados.filter(is_active=True).count()
+        
+        # Clientes tomadores com total de notas e valor total
+        clientes = ClienteTomador.objects.filter(
+            nfse_recebidas__prestador=self.object
+        ).distinct().annotate(
+            total_notas=Count('nfse_recebidas'),
+            valor_total=Sum('nfse_recebidas__valor_servico')
+        ).order_by('-total_notas')
+        
+        context['clientes_tomadores'] = clientes
+        context['total_clientes'] = clientes.count()
+        
         return context
 
 
@@ -661,4 +676,24 @@ class ConsultarCNPJView(LoginRequiredMixin, View):
 
     def form_valid(self, form):
         messages.success(self.request, 'Usuário excluído com sucesso!')
+        return super().form_valid(form)
+
+
+# =============================================================================
+# Contabilidade
+# =============================================================================
+
+class ContabilidadeUpdateView(LoginRequiredMixin, UpdateView):
+    '''Edição dos dados da contabilidade.'''
+    model = Contabilidade
+    form_class = ContabilidadeForm
+    template_name = 'contabilidade/contabilidade/form.html'
+    success_url = reverse_lazy('contabilidade:contabilidade_update')
+
+    def get_object(self):
+        # Sempre retorna a contabilidade do usuário logado
+        return self.request.user.contabilidade
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Dados da contabilidade atualizados com sucesso!')
         return super().form_valid(form)

@@ -50,6 +50,9 @@ urlpatterns = [
     path('usuarios/<int:pk>/editar/', views.UsuarioUpdateView.as_view(), name='usuario_update'),
     path('usuarios/<int:pk>/excluir/', views.UsuarioDeleteView.as_view(), name='usuario_delete'),
     
+    # Contabilidade
+    path('configuracoes/', views.ContabilidadeUpdateView.as_view(), name='contabilidade_update'),
+    
     # API/AJAX
     path('api/consultar-cnpj/', views.ConsultarCNPJView.as_view(), name='consultar_cnpj_ajax'),
 ]
