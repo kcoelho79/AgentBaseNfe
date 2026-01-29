@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 from decimal import Decimal
+from apps.nfse.models import ClienteTomador
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +70,22 @@ Ou digite *cancelar* para cancelar.""".strip()
         cnpj = cnpj_obj.get('cnpj_extracted', 'Não informado')
         valor = Decimal(str(valor_obj.get('valor', 0)))
         descricao = descricao_obj.get('descricao', 'Não informado')
+
+        # Normaliza CNPJ (remove formatação)
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj)) if cnpj != 'Não informado' else ''
+        
+        # Busca razão social no banco
+        razao_social = 'Não informado'
+        if cnpj_limpo:
+            tomador = ClienteTomador.objects.filter(cnpj=cnpj_limpo).first()
+            if tomador:
+                razao_social = tomador.razao_social
         
         valor_iss = valor * aliquota_iss
         
         return f"""📋 *ESPELHO DA NOTA FISCAL*
 
-*Razao Social:* {dados.get('razao_social', 'Não informado')}
+*Razao Social:* {razao_social}
 *CNPJ:* {cnpj}
 
 *Descrição:* {descricao}
