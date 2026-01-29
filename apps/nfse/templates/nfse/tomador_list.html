@@ -166,10 +166,13 @@
                         </td>
                         <td class="text-center">
                             {% if tomador.total_notas > 0 %}
-                            <span class="badge bg-success" data-bs-toggle="tooltip" 
-                                  title="{{ tomador.total_notas }} NFSe emitida(s)">
+                            <a href="{% url 'nfse:processada_list' %}?tomador={{ tomador.cnpj }}" 
+                               class="badge bg-success text-decoration-none" 
+                               data-bs-toggle="tooltip" 
+                               title="Clique para ver as {{ tomador.total_notas }} NFSe processada(s)">
                                 {{ tomador.total_notas }}
-                            </span>
+                                <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}

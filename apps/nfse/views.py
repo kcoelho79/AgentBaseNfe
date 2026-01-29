@@ -180,7 +180,14 @@ class ClienteTomadorListView(LoginRequiredMixin, ListView):
         # Filtra tomadores que têm notas emitidas por empresas da contabilidade
         queryset = ClienteTomador.objects.filter(
             nfse_recebidas__prestador__contabilidade=contabilidade
-        ).distinct().annotate(
+        ).distinct()
+        
+        # Filtro por prestador (empresa emitente)
+        prestador_id = self.request.GET.get('prestador', '').strip()
+        if prestador_id:
+            queryset = queryset.filter(nfse_recebidas__prestador_id=prestador_id)
+        
+        queryset = queryset.annotate(
             total_notas=Count('nfse_recebidas')
         ).order_by('-created_at')
         
