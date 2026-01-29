@@ -34,8 +34,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         contabilidade = self.request.user.contabilidade
 
+        # Inicializa valores padrão
+        context['hoje'] = timezone.now().date()
+        context['total_empresas'] = 0
+        context['certificados_vencendo'] = 0
+        context['total_usuarios_empresas'] = 0
+        context['total_notas'] = 0
+        context['sessoes_ativas'] = 0
+        context['sessoes_recentes'] = []
+        context['certificados_lista'] = []
+
         if contabilidade:
-            hoje = timezone.now().date()
+            from apps.nfse.models import NFSeEmissao
+            from apps.core.db_models import SessionSnapshot
+            from apps.core.states import SessionState
+            
+            hoje = context['hoje']
 
             # Métricas básicas
             context['total_empresas'] = Empresa.objects.filter(
@@ -55,11 +69,33 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 is_active=True
             ).count()
 
-            # TODO: Integrar com SessionSnapshot para métricas de notas
-            context['notas_mes'] = 0
-            context['notas_hoje'] = 0
-            context['notas_sucesso'] = 0
-            context['notas_erro'] = 0
+            # Total de notas emitidas de todas as empresas da contabilidade
+            context['total_notas'] = NFSeEmissao.objects.filter(
+                prestador__contabilidade=contabilidade
+            ).count()
+
+            # Total de sessões ativas (estados não finalizados)
+            context['sessoes_ativas'] = SessionSnapshot.objects.filter(
+                empresa_id__in=Empresa.objects.filter(
+                    contabilidade=contabilidade
+                ).values_list('id', flat=True),
+                estado__in=SessionState.active_states()
+            ).count()
+
+            # Sessões recentes (últimas 10)
+            context['sessoes_recentes'] = SessionSnapshot.objects.filter(
+                empresa_id__in=Empresa.objects.filter(
+                    contabilidade=contabilidade
+                ).values_list('id', flat=True)
+            ).order_by('-session_updated_at')[:10]
+
+            # Lista de certificados vencendo (para alertas)
+            context['certificados_lista'] = Certificado.objects.filter(
+                empresa__contabilidade=contabilidade,
+                validade__lte=hoje + timedelta(days=30),
+                validade__gte=hoje,
+                is_active=True
+            ).select_related('empresa').order_by('validade')[:5]
 
         return context
 
