@@ -10,7 +10,7 @@ TENANT
 o correto deveria mostrar somente as empresas da contabilidade atual
 
 [ ] se a sessão nao pertecer a nenhum cliente aonde ficara registrado.
-[ ] UsuarioEmpresa seu celular cadastrado em duas empresas, nao permitir 
+[x] UsuarioEmpresa seu celular cadastrado em duas empresas, nao permitir 
 
 ADMIN
 Contabilide
@@ -59,7 +59,7 @@ NFSE
   [x] ??? Pensar em lista ClienteTomador para mais de uma empresa, relacionadmento de tabela
   tabela transição clienteId, emprsas n:n notas fiscal
   
-  [] menu cliente tomador, esta mostrando de todos os clientes, deveria filtrar
+  [x] menu cliente tomador, esta mostrando de todos os clientes, deveria filtrar
   por contabilidade
 
 Sessoes 

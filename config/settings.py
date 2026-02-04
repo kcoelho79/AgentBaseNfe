@@ -102,17 +102,17 @@ DATABASES = {
 
 # Cache
 # https://docs.djangoproject.com/en/5.2/topics/cache/
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
-        },
-        'TIMEOUT': 86400,  # 24 horas
-    }
-}
+#CACHES = {
+#    'default': {
+#        'BACKEND': 'django_redis.cache.RedisCache',
+#        'LOCATION': config('REDIS_URL'),
+#        'OPTIONS': {
+#            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+#        },
+#        'TIMEOUT': 86400,  # 24 horas
+#    }
+#}
 
 
 # Password validation
