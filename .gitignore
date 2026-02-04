@@ -1,11 +1,25 @@
 .venv/
+
+# banco de dados
 db.sqlite3
+*.sqlite3
+
+# Pasta para persistir o banco de dados em producao
+django/db
+
 .env
 *.KLEBER*
 PROXIMO*
 INSTRUCOES/
 .claude/
 CLAUDE.md
+
+.vscode
+.idea
+
+# Media Upload de Usuarios
+media/*
+!media/.gitkeep
 
 # pasta projeto Python
 etc/
