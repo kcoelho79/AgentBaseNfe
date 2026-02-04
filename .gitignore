@@ -11,9 +11,14 @@ django/db
 *.KLEBER*
 PROXIMO*
 INSTRUCOES/
+TODO.md
+
+# Claude AI
 .claude/
 CLAUDE.md
+AGENTS.md
 
+# IDEs e editores
 .vscode
 .idea
 
