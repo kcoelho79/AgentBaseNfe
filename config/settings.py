@@ -31,9 +31,8 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
 
 # Security Settings (baseado no DEBUG)
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'True') == 'True'
-SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'True') == 'True'
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
 
 # Proxy/HTTPS Headers (somente em produção)
 if not DEBUG:
@@ -57,6 +56,7 @@ INSTALLED_APPS = [
     'apps.contabilidade',
     'apps.core',
     'apps.nfse',
+    'apps.whatsapp_api',
 ]
 
 # Custom User Model
