@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QR Code - {{ canal.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_list' %}">Canais WhatsApp</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_detail' pk=canal.pk %}">{{ canal.nome }}</a>
+                </li>
+                <li class="breadcrumb-item active">QR Code</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">
+            <i class="bi bi-qr-code text-success me-2"></i>
+            Conectar Canal
+        </h1>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5 class="mb-0">Escaneie o QR Code com seu WhatsApp</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div id="qrcode-container">
+                        {% if canal.qrcode_base64 %}
+                            <img src="data:image/png;base64,{{ canal.qrcode_base64 }}" 
+                                 alt="QR Code" 
+                                 class="img-fluid mb-4"
+                                 style="max-width: 300px;"
+                                 id="qrcode-image">
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                QR Code não disponível. Clique em "Gerar Novo QR Code".
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div id="connected-message" class="d-none">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>Conectado com sucesso!</strong>
+                        </div>
+                    </div>
+
+                    <div id="status-indicator" class="mb-4">
+                        <span class="badge bg-warning text-dark fs-6" id="status-badge">
+                            <i class="bi bi-hourglass-split me-1"></i>
+                            Aguardando leitura do QR Code...
+                        </span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-success" id="refresh-qrcode">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Gerar Novo QR Code
+                        </button>
+                        <a href="{% url 'whatsapp_api:canal_detail' pk=canal.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instruções -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-question-circle me-2"></i>
+                        Como escanear?
+                    </h6>
+                    <ol class="mb-0 small">
+                        <li>Abra o WhatsApp no seu celular</li>
+                        <li>Toque em <strong>Menu</strong> (três pontos) ou <strong>Configurações</strong></li>
+                        <li>Selecione <strong>Aparelhos Conectados</strong></li>
+                        <li>Toque em <strong>Conectar um aparelho</strong></li>
+                        <li>Aponte a câmera para este QR Code</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+let checkInterval;
+let isConnected = false;
+
+function checkStatus() {
+    if (isConnected) return;
+    
+    fetch('{% url "whatsapp_api:canal_status" pk=canal.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('status-badge');
+            
+            if (data.status === 'connected') {
+                isConnected = true;
+                clearInterval(checkInterval);
+                
+                document.getElementById('qrcode-container').classList.add('d-none');
+                document.getElementById('connected-message').classList.remove('d-none');
+                badge.className = 'badge bg-success fs-6';
+                badge.innerHTML = '<i class="bi bi-check-circle me-1"></i> Conectado!';
+                
+                // Redirecionar após 2 segundos
+                setTimeout(() => {
+                    window.location.href = '{% url "whatsapp_api:canal_detail" pk=canal.pk %}';
+                }, 2000);
+                
+            } else if (data.status === 'connecting') {
+                badge.className = 'badge bg-info fs-6';
+                badge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Conectando...';
+            }
+        })
+        .catch(console.error);
+}
+
+function refreshQRCode() {
+    const btn = document.getElementById('refresh-qrcode');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Gerando...';
+    
+    fetch('{% url "whatsapp_api:canal_refresh_qrcode" pk=canal.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Gerar Novo QR Code';
+            
+            if (data.success && data.qrcode_base64) {
+                const img = document.getElementById('qrcode-image');
+                if (img) {
+                    img.src = 'data:image/png;base64,' + data.qrcode_base64;
+                } else {
+                    const container = document.getElementById('qrcode-container');
+                    container.innerHTML = '<img src="data:image/png;base64,' + data.qrcode_base64 + 
+                        '" alt="QR Code" class="img-fluid mb-4" style="max-width: 300px;" id="qrcode-image">';
+                }
+            } else if (data.error) {
+                alert('Erro ao gerar QR Code: ' + data.error);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Gerar Novo QR Code';
+            console.error(err);
+        });
+}
+
+// Iniciar verificação
+document.addEventListener('DOMContentLoaded', function() {
+    checkInterval = setInterval(checkStatus, 3000);
+    document.getElementById('refresh-qrcode').addEventListener('click', refreshQRCode);
+});
+</script>
+{% endblock %}
+{% endblock %}

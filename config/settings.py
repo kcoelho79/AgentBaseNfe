@@ -260,10 +260,7 @@ LOGGING = {
 
 
 # WhatsApp (WAHA)
-WAHA_API_URL = config('WAHA_API_URL', default='http://localhost:3000')
-WAHA_API_KEY = config('WAHA_API_KEY', default='')
-WAHA_VERIFY_TOKEN = config('WAHA_VERIFY_TOKEN', default='')
-WAHA_SESSION_NAME = config('WAHA_SESSION_NAME', default='default')
+
 
 
 # OpenAI

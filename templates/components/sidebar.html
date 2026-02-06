@@ -25,6 +25,14 @@
                 </a>
             </li>
 
+            <!-- WhatsApp -->
+            <li class="nav-item">
+                <a class="nav-link {% if 'canal' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'whatsapp_api:canal_list' %}">
+                    <i class="bi bi-whatsapp me-2"></i>
+                    WhatsApp
+                </a>
+            </li>
+
             <!-- Notas Fiscais -->
             <li class="nav-item">
                 <a class="nav-link {% if 'nota_fiscal' in request.resolver_match.url_name or 'emissao' in request.resolver_match.url_name or 'processada' in request.resolver_match.url_name or 'tomador' in request.resolver_match.url_name or 'consulta_cnpj' in request.resolver_match.url_name %}active{% endif %}" 

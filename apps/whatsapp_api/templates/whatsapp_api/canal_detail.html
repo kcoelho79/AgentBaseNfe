@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ canal.nome }} - Canal WhatsApp{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_list' %}">Canais WhatsApp</a>
+                </li>
+                <li class="breadcrumb-item active">{{ canal.nome }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-whatsapp text-success me-2"></i>
+                {{ canal.nome }}
+            </h1>
+            <span class="badge fs-6
+                {% if canal.status == 'connected' %}bg-success
+                {% elif canal.status == 'qrcode' %}bg-warning text-dark
+                {% elif canal.status == 'connecting' %}bg-info
+                {% else %}bg-secondary{% endif %}" id="status-badge">
+                {{ canal.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informações do Canal -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informações do Canal</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Instância:</th>
+                            <td><code>{{ canal.instance_name }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Webhook URL:</th>
+                            <td>
+                                <small><code>{{ canal.webhook_url }}</code></small>
+                            </td>
+                        </tr>
+                        {% if canal.phone_number %}
+                        <tr>
+                            <th>Número Conectado:</th>
+                            <td><strong>{{ canal.phone_number }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Criado em:</th>
+                            <td>{{ canal.created_at|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Atualizado em:</th>
+                            <td>{{ canal.updated_at|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ações</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if canal.status == 'connected' %}
+                            <a href="{% url 'whatsapp_api:canal_disconnect' pk=canal.pk %}" 
+                               class="btn btn-warning"
+                               onclick="return confirm('Deseja realmente desconectar este canal?')">
+                                <i class="bi bi-power me-2"></i> Desconectar
+                            </a>
+                            <a href="{% url 'whatsapp_api:canal_restart' pk=canal.pk %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise me-2"></i> Reiniciar
+                            </a>
+                        {% else %}
+                            <a href="{% url 'whatsapp_api:canal_connect' pk=canal.pk %}" 
+                               class="btn btn-success">
+                                <i class="bi bi-qr-code me-2"></i> Conectar (QR Code)
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'whatsapp_api:canal_delete' pk=canal.pk %}" 
+                           class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-2"></i> Excluir Canal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Recentes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Logs Recentes</h5>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if logs %}
+                        <div class="list-group list-group-flush">
+                            {% for log in logs %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="badge 
+                                                {% if log.event_type == 'MESSAGES_UPSERT' %}bg-primary
+                                                {% elif log.event_type == 'CONNECTION_UPDATE' %}bg-info
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ log.event_type }}
+                                            </span>
+                                            {% if log.phone_from %}
+                                                <small class="text-muted ms-2">{{ log.phone_from }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ log.created_at|date:"d/m H:i" }}
+                                        </small>
+                                    </div>
+                                    {% if log.message_text %}
+                                        <p class="mb-1 mt-2 small">
+                                            <i class="bi bi-chat-left-text text-primary me-1"></i>
+                                            {{ log.message_text|truncatechars:100 }}
+                                        </p>
+                                    {% endif %}
+                                    {% if log.processed %}
+                                        <span class="badge bg-success-subtle text-success">Processado</span>
+                                    {% elif log.error_message %}
+                                        <span class="badge bg-danger-subtle text-danger" 
+                                              title="{{ log.error_message }}">Erro</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">
+                            Nenhum log registrado ainda.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Atualizar status periodicamente
+function updateStatus() {
+    fetch('{% url "whatsapp_api:canal_status" pk=canal.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('status-badge');
+            if (data.status) {
+                badge.textContent = data.status_display;
+                badge.className = 'badge fs-6 ';
+                if (data.status === 'connected') {
+                    badge.className += 'bg-success';
+                } else if (data.status === 'qrcode') {
+                    badge.className += 'bg-warning text-dark';
+                } else if (data.status === 'connecting') {
+                    badge.className += 'bg-info';
+                } else {
+                    badge.className += 'bg-secondary';
+                }
+            }
+        })
+        .catch(console.error);
+}
+
+// Atualizar a cada 10 segundos
+setInterval(updateStatus, 10000);
+</script>
+{% endblock %}
+{% endblock %}

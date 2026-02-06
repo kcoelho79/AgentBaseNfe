@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Excluir Canal - {{ canal.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_list' %}">Canais WhatsApp</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_detail' pk=canal.pk %}">{{ canal.nome }}</a>
+                </li>
+                <li class="breadcrumb-item active">Excluir</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0 text-danger">
+            <i class="bi bi-trash me-2"></i>
+            Excluir Canal
+        </h1>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Confirmar Exclusão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Tem certeza que deseja excluir o canal <strong>{{ canal.nome }}</strong>?
+                    </p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Atenção:</strong> Esta ação irá:
+                        <ul class="mb-0 mt-2">
+                            <li>Desconectar o WhatsApp vinculado</li>
+                            <li>Remover a instância da Evolution API</li>
+                            <li>Parar de receber mensagens neste canal</li>
+                        </ul>
+                    </div>
+
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Nome:</th>
+                            <td>{{ canal.nome }}</td>
+                        </tr>
+                        <tr>
+                            <th>Instância:</th>
+                            <td><code>{{ canal.instance_name }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge 
+                                    {% if canal.status == 'connected' %}bg-success
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ canal.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% if canal.phone_number %}
+                        <tr>
+                            <th>Número:</th>
+                            <td>{{ canal.phone_number }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i> Sim, Excluir Canal
+                            </button>
+                            <a href="{% url 'whatsapp_api:canal_detail' pk=canal.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-lg me-1"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

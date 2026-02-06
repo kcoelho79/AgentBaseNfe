@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Canais WhatsApp{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-whatsapp text-success me-2"></i>
+                Canais WhatsApp
+            </h1>
+            <p class="text-muted mb-0">Gerencie seus canais de atendimento via WhatsApp</p>
+        </div>
+        <div>
+            {% if evolution_online %}
+                <span class="badge bg-success me-2">
+                    <i class="bi bi-circle-fill me-1"></i> Evolution API Online
+                </span>
+            {% else %}
+                <span class="badge bg-danger me-2">
+                    <i class="bi bi-circle-fill me-1"></i> Evolution API Offline
+                </span>
+            {% endif %}
+            <a href="{% url 'whatsapp_api:canal_create' %}" class="btn btn-success">
+                <i class="bi bi-plus-lg me-1"></i> Adicionar Canal
+            </a>
+        </div>
+    </div>
+
+    <!-- Lista de Canais -->
+    {% if canais %}
+        <div class="row">
+            {% for canal in canais %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 {% if canal.is_connected %}border-success{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-whatsapp text-success me-2"></i>
+                                {{ canal.nome }}
+                            </h5>
+                            <span class="badge 
+                                {% if canal.status == 'connected' %}bg-success
+                                {% elif canal.status == 'qrcode' %}bg-warning text-dark
+                                {% elif canal.status == 'connecting' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ canal.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <small class="text-muted">Instância:</small><br>
+                                <code>{{ canal.instance_name }}</code>
+                            </p>
+                            {% if canal.phone_number %}
+                                <p class="card-text">
+                                    <small class="text-muted">Número conectado:</small><br>
+                                    <strong>{{ canal.phone_number }}</strong>
+                                </p>
+                            {% endif %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Criado em: {{ canal.created_at|date:"d/m/Y H:i" }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100" role="group">
+                                <a href="{% url 'whatsapp_api:canal_detail' pk=canal.pk %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> Detalhes
+                                </a>
+                                {% if canal.status == 'qrcode' or canal.status == 'disconnected' %}
+                                    <a href="{% url 'whatsapp_api:canal_qrcode' pk=canal.pk %}" 
+                                       class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-qr-code"></i> QR Code
+                                    </a>
+                                {% endif %}
+                                {% if canal.status == 'connected' %}
+                                    <a href="{% url 'whatsapp_api:canal_disconnect' pk=canal.pk %}" 
+                                       class="btn btn-outline-warning btn-sm">
+                                        <i class="bi bi-power"></i> Desconectar
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-whatsapp text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Nenhum canal configurado</h4>
+                <p class="text-muted">
+                    Adicione um canal WhatsApp para começar a receber mensagens dos seus clientes.
+                </p>
+                <a href="{% url 'whatsapp_api:canal_create' %}" class="btn btn-success">
+                    <i class="bi bi-plus-lg me-1"></i> Adicionar Primeiro Canal
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

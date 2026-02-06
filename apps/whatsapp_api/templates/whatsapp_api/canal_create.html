@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Adicionar Canal WhatsApp{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'whatsapp_api:canal_list' %}">Canais WhatsApp</a>
+                </li>
+                <li class="breadcrumb-item active">Adicionar</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">
+            <i class="bi bi-plus-circle text-success me-2"></i>
+            Adicionar Canal WhatsApp
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Dados do Canal</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_nome" class="form-label">Nome do Canal *</label>
+                            {{ form.nome }}
+                            <div class="form-text">
+                                Um nome para identificar este canal (ex: WhatsApp Principal, Atendimento)
+                            </div>
+                            {% if form.nome.errors %}
+                                <div class="text-danger small">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg me-1"></i> Criar Canal
+                            </button>
+                            <a href="{% url 'whatsapp_api:canal_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-lg me-1"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Como funciona?
+                    </h5>
+                    <ol class="mb-0">
+                        <li class="mb-2">Clique em <strong>Criar Canal</strong></li>
+                        <li class="mb-2">Um QR Code será exibido na tela</li>
+                        <li class="mb-2">Abra o WhatsApp no seu celular</li>
+                        <li class="mb-2">Vá em <strong>Configurações → Aparelhos Conectados</strong></li>
+                        <li class="mb-2">Escaneie o QR Code exibido</li>
+                        <li>Pronto! O canal estará conectado</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Importante:</strong> O número de WhatsApp utilizado ficará dedicado a este sistema. 
+                Mensagens recebidas serão processadas automaticamente.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

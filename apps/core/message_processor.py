@@ -47,7 +47,7 @@ class MessageProcessor:
             ).select_related('empresa').first()
             
             if not usuario_empresa:
-                logger.warning('Telefone não cadastrado', extra={'telefone': telefone})
+                logger.warning(f'Telefone {telefone} não cadastrado', extra={'telefone': telefone})
                 return (
                     "❌ Seu telefone não está cadastrado em nosso sistema.\n\n"
                     "Por favor, entre em contato com sua contabilidade para cadastrar seu número "
