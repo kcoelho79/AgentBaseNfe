@@ -112,6 +112,26 @@ DATABASES = {
     }
 }
 
+# Evolution API Database (PostgreSQL) - Readonly
+# Usado para ler mensagens e chats diretamente do banco da Evolution
+EVOLUTION_DB_ENABLED = config('EVOLUTION_DB_ENABLED', default=False, cast=bool)
+
+if EVOLUTION_DB_ENABLED:
+    DATABASES['evolution'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': config('EVOLUTION_DB_HOST', default='localhost'),
+        'PORT': config('EVOLUTION_DB_PORT', default='5432'),
+        'NAME': config('EVOLUTION_DB_NAME', default='evolution_db'),
+        'USER': config('EVOLUTION_DB_USER', default='postgres'),
+        'PASSWORD': config('EVOLUTION_DB_PASSWORD', default='postgres'),
+        'OPTIONS': {
+            'options': f"-c search_path={config('EVOLUTION_DB_SCHEMA', default='evolution_api')}"
+        },
+    }
+    
+    # Router para direcionar models Evolution para o banco correto
+    DATABASE_ROUTERS = ['apps.whatsapp_api.models_evolution.EvolutionDBRouter']
+
 
 # Cache
 # https://docs.djangoproject.com/en/5.2/topics/cache/
