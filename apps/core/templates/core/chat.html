@@ -167,6 +167,22 @@
             padding: 8px 15px;
         }
 
+        .log-btn {
+            background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%);
+            font-size: 12px;
+            padding: 8px 15px;
+        }
+
+        .log-btn.recording {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         /* AI Test Modal */
         .modal-overlay {
             display: none;
@@ -323,6 +339,7 @@
         <div class="header">
             <h2>💬 AgentNFe - Chat Local</h2>
             <div class="header-controls">
+                <button class="log-btn" id="log-toggle-btn" onclick="toggleLogSession()">📋 Start Log</button>
                 <button class="ai-btn" onclick="openAIModal()">🤖 Simular IA</button>
                 <button class="clear-btn" onclick="clearState()">🗑️ Limpar Estado</button>
             </div>
@@ -362,6 +379,179 @@
     <script>
         // Telefones salvos localmente
         let telefonesCustom = JSON.parse(localStorage.getItem('telefonesCustom') || '{}');
+        
+        // ========== LOG SESSION ==========
+        let logSession = {
+            active: false,
+            sessionId: null,
+            startTime: null,
+            timer: null
+        };
+        
+        async function toggleLogSession() {
+            if (logSession.active) {
+                await stopLogSession();
+            } else {
+                await startLogSession();
+            }
+        }
+        
+        async function startLogSession() {
+            const phone = getSelectedPhone();
+            
+            try {
+                const response = await fetch('/logs/start/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone || '' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    logSession.active = true;
+                    logSession.sessionId = data.session_id;
+                    logSession.startTime = new Date();
+                    
+                    // Atualizar botão
+                    const btn = document.getElementById('log-toggle-btn');
+                    btn.textContent = '🔴 Stop Log';
+                    btn.classList.add('recording');
+                    
+                    // Timer de 10 minutos
+                    logSession.timer = setTimeout(() => {
+                        addMessage('⏱️ Sessão de log expirou (10 minutos). Descartando...', false);
+                        cancelLogSession();
+                    }, 10 * 60 * 1000);
+                    
+                    addMessage(`📋 Captura de log iniciada!\n\nSession ID: ${data.session_id}\n⏱️ Limite: 10 minutos ou 50 mensagens\n\n💡 Faça suas operações e clique em "Stop Log" para ver os logs.`, false);
+                } else {
+                    addMessage(`❌ Erro ao iniciar log: ${data.error}`, false);
+                }
+            } catch (error) {
+                addMessage(`❌ Erro: ${error.message}`, false);
+            }
+        }
+        
+        async function stopLogSession() {
+            if (!logSession.active || !logSession.sessionId) {
+                return;
+            }
+            
+            // Limpar timer
+            if (logSession.timer) {
+                clearTimeout(logSession.timer);
+            }
+            
+            try {
+                const response = await fetch('/logs/stop/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: logSession.sessionId })
+                });
+                
+                const data = await response.json();
+                
+                // Resetar estado
+                resetLogSession();
+                
+                if (data.status === 'ok') {
+                    addMessage(`📋 Captura finalizada!\n\n⏱️ Duração: ${data.duration_seconds.toFixed(1)}s\n📝 Total: ${data.count} linhas\n\n${'─'.repeat(40)}`, false);
+                    
+                    // Exibir logs linha por linha com delay
+                    if (data.logs && data.logs.length > 0) {
+                        displayLogsAnimated(data.logs);
+                    } else {
+                        addMessage('(nenhum log capturado)', false);
+                    }
+                } else if (data.discarded) {
+                    addMessage(`⚠️ Log descartado: ${data.error}`, false);
+                } else {
+                    addMessage(`❌ Erro: ${data.error}`, false);
+                }
+            } catch (error) {
+                resetLogSession();
+                addMessage(`❌ Erro: ${error.message}`, false);
+            }
+        }
+        
+        async function cancelLogSession() {
+            if (!logSession.active || !logSession.sessionId) {
+                return;
+            }
+            
+            if (logSession.timer) {
+                clearTimeout(logSession.timer);
+            }
+            
+            try {
+                await fetch('/logs/cancel/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: logSession.sessionId })
+                });
+            } catch (e) {
+                // Ignorar erros
+            }
+            
+            resetLogSession();
+        }
+        
+        function resetLogSession() {
+            logSession.active = false;
+            logSession.sessionId = null;
+            logSession.startTime = null;
+            logSession.timer = null;
+            
+            const btn = document.getElementById('log-toggle-btn');
+            btn.textContent = '📋 Start Log';
+            btn.classList.remove('recording');
+        }
+        
+        function displayLogsAnimated(logs) {
+            let index = 0;
+            
+            function showNextLog() {
+                if (index < logs.length) {
+                    const line = logs[index];
+                    
+                    // Criar div de log com cor baseada no nível
+                    const messagesDiv = document.getElementById('messages');
+                    const logDiv = document.createElement('div');
+                    logDiv.className = 'message bot';
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = 'bubble log-line';
+                    bubble.style.fontFamily = 'monospace';
+                    bubble.style.fontSize = '11px';
+                    bubble.style.whiteSpace = 'pre-wrap';
+                    bubble.style.wordBreak = 'break-all';
+                    
+                    // Cor baseada no nível
+                    if (line.includes('ERROR')) {
+                        bubble.style.borderLeft = '3px solid #f56565';
+                    } else if (line.includes('WARNING')) {
+                        bubble.style.borderLeft = '3px solid #ecc94b';
+                    } else if (line.includes('INFO')) {
+                        bubble.style.borderLeft = '3px solid #4299e1';
+                    } else {
+                        bubble.style.borderLeft = '3px solid #718096';
+                    }
+                    
+                    bubble.textContent = line;
+                    logDiv.appendChild(bubble);
+                    messagesDiv.appendChild(logDiv);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    
+                    index++;
+                    setTimeout(showNextLog, 100); // 100ms entre cada linha
+                } else {
+                    addMessage(`${'─'.repeat(40)}\n✅ Fim dos logs`, false);
+                }
+            }
+            
+            showNextLog();
+        }
         
         // Carregar telefones custom no select ao iniciar
         function loadCustomPhones() {

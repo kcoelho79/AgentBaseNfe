@@ -28,6 +28,9 @@ urlpatterns = [
     path('clear/<str:telefone>/', core_views.clear_state, name='clear_state'),
     path('health/', core_views.health, name='health'),
     path('logs/', core_views.get_logs, name='get_logs'),
+    path('logs/start/', core_views.start_log_session, name='log_start'),
+    path('logs/stop/', core_views.stop_log_session, name='log_stop'),
+    path('logs/cancel/', core_views.cancel_log_session, name='log_cancel'),
     
     # AI Test Simulation
     path('ai-test/scenarios/', core_views.list_ai_scenarios, name='ai_scenarios'),

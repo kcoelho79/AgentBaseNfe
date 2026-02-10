@@ -7,9 +7,15 @@ import json
 import logging
 import os
 import time
+from datetime import datetime, timedelta
 from apps.core.message_gateway import MessageGateway
 
 logger = logging.getLogger(__name__)
+
+# Armazenamento em memória para sessões de log ativas
+# Formato: {session_id: {'start_time': datetime, 'start_marker': str, 'phone': str}}
+LOG_SESSIONS = {}
+LOG_SESSION_COUNTER = 0
 
 # Simulação de telefones para teste
 TELEFONES_TESTE = {
@@ -145,6 +151,173 @@ def get_logs(request):
             'status': 'error',
             'error': str(e),
             'logs': []
+        }, status=500)
+
+
+# ==================== LOG SESSION (START/STOP) ====================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def start_log_session(request):
+    """
+    Inicia uma sessão de captura de logs.
+    Insere uma marcação no debug.log e retorna o session_id.
+    """
+    global LOG_SESSION_COUNTER
+    
+    try:
+        data = json.loads(request.body) if request.body else {}
+        phone = data.get('phone', '')
+        
+        # Gerar ID da sessão
+        LOG_SESSION_COUNTER += 1
+        session_id = f"LOG_{LOG_SESSION_COUNTER}"
+        
+        # Criar marcação
+        now = datetime.now()
+        start_marker = f"===== LOG_SESSION_START | ID:{session_id} | TIME:{now.strftime('%Y-%m-%d %H:%M:%S.%f')} | PHONE:{phone} ====="
+        
+        # Inserir marcação no log
+        logger.info(start_marker)
+        
+        # Salvar sessão
+        LOG_SESSIONS[session_id] = {
+            'start_time': now,
+            'start_marker': start_marker,
+            'phone': phone
+        }
+        
+        return JsonResponse({
+            'status': 'ok',
+            'session_id': session_id,
+            'start_time': now.isoformat(),
+            'message': 'Sessão de log iniciada'
+        })
+        
+    except Exception as e:
+        logger.exception('Erro ao iniciar sessão de log')
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stop_log_session(request):
+    """
+    Finaliza uma sessão de captura de logs.
+    Insere marcação de fim e retorna todos os logs entre as marcações.
+    
+    Limites:
+    - Máximo 50 mensagens
+    - Máximo 10 minutos
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        if not session_id or session_id not in LOG_SESSIONS:
+            return JsonResponse({
+                'status': 'error',
+                'error': 'Sessão não encontrada'
+            }, status=404)
+        
+        session = LOG_SESSIONS[session_id]
+        now = datetime.now()
+        
+        # Verificar limite de tempo (10 minutos)
+        elapsed = now - session['start_time']
+        if elapsed > timedelta(minutes=10):
+            del LOG_SESSIONS[session_id]
+            return JsonResponse({
+                'status': 'error',
+                'error': 'Sessão expirada (máximo 10 minutos)',
+                'discarded': True
+            })
+        
+        # Criar marcação de fim
+        end_marker = f"===== LOG_SESSION_END | ID:{session_id} | TIME:{now.strftime('%Y-%m-%d %H:%M:%S.%f')} ====="
+        logger.info(end_marker)
+        
+        # Ler arquivo de log e extrair linhas entre as marcações
+        log_path = os.path.join(settings.BASE_DIR, 'logs', 'debug.log')
+        
+        if not os.path.exists(log_path):
+            del LOG_SESSIONS[session_id]
+            return JsonResponse({
+                'status': 'error',
+                'error': 'Arquivo de log não encontrado'
+            })
+        
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+        
+        # Encontrar linhas entre as marcações
+        start_marker = session['start_marker']
+        capturing = False
+        captured_logs = []
+        
+        for line in all_lines:
+            line_stripped = line.strip()
+            
+            if start_marker in line_stripped:
+                capturing = True
+                continue
+            
+            if end_marker in line_stripped:
+                break
+            
+            if capturing and line_stripped:
+                captured_logs.append(line_stripped)
+        
+        # Remover sessão
+        del LOG_SESSIONS[session_id]
+        
+        # Verificar limite de mensagens (50)
+        if len(captured_logs) > 50:
+            return JsonResponse({
+                'status': 'error',
+                'error': f'Limite excedido ({len(captured_logs)} mensagens, máximo 50)',
+                'discarded': True
+            })
+        
+        return JsonResponse({
+            'status': 'ok',
+            'session_id': session_id,
+            'logs': captured_logs,
+            'count': len(captured_logs),
+            'duration_seconds': elapsed.total_seconds()
+        })
+        
+    except Exception as e:
+        logger.exception('Erro ao finalizar sessão de log')
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def cancel_log_session(request):
+    """Cancela uma sessão de log sem capturar."""
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        
+        if session_id and session_id in LOG_SESSIONS:
+            del LOG_SESSIONS[session_id]
+        
+        return JsonResponse({
+            'status': 'ok',
+            'message': 'Sessão cancelada'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
         }, status=500)
 
 
