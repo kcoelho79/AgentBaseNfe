@@ -33,10 +33,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .header h2 {
             font-size: 18px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .messages {
@@ -152,6 +160,126 @@
         .clear-btn:hover {
             opacity: 0.9;
         }
+
+        .ai-btn {
+            background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
+            font-size: 12px;
+            padding: 8px 15px;
+        }
+
+        /* AI Test Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #2d3748;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .scenario-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .scenario-item {
+            background: #1a202c;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .scenario-item:hover {
+            border-color: #38b2ac;
+            transform: translateX(5px);
+        }
+
+        .scenario-item h4 {
+            color: #e2e8f0;
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+
+        .scenario-item p {
+            color: #8b949e;
+            margin: 0;
+            font-size: 12px;
+        }
+
+        .scenario-item .meta {
+            color: #667eea;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .ai-running {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .ai-running .spinner {
+            border: 3px solid #4a5568;
+            border-top-color: #38b2ac;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         
         .loading {
             opacity: 0.6;
@@ -194,7 +322,10 @@
     <div class="container">
         <div class="header">
             <h2>💬 AgentNFe - Chat Local</h2>
-            <button class="clear-btn" onclick="clearState()">🗑️ Limpar Estado</button>
+            <div class="header-controls">
+                <button class="ai-btn" onclick="openAIModal()">🤖 Simular IA</button>
+                <button class="clear-btn" onclick="clearState()">🗑️ Limpar Estado</button>
+            </div>
         </div>
         
         <div class="messages" id="messages"></div>
@@ -415,12 +546,174 @@
                 sendMessage();
             }
         }
+
+        // ========== AI SIMULATION ==========
+        
+        let aiScenarios = [];
+        let aiRunning = false;
+        
+        function openAIModal() {
+            document.getElementById('ai-modal').classList.add('active');
+            loadScenarios();
+        }
+        
+        function closeAIModal() {
+            if (aiRunning) {
+                if (!confirm('⚠️ Teste em andamento. Deseja cancelar?')) {
+                    return;
+                }
+            }
+            document.getElementById('ai-modal').classList.remove('active');
+            aiRunning = false;
+        }
+        
+        async function loadScenarios() {
+            const list = document.getElementById('scenario-list');
+            list.innerHTML = '<li class="scenario-item"><p>Carregando cenários...</p></li>';
+            
+            try {
+                const response = await fetch('/ai-test/scenarios/');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    aiScenarios = data.scenarios;
+                    renderScenarios();
+                } else {
+                    list.innerHTML = `<li class="scenario-item"><p>❌ Erro: ${data.error}</p></li>`;
+                }
+            } catch (error) {
+                list.innerHTML = `<li class="scenario-item"><p>❌ Erro de conexão</p></li>`;
+            }
+        }
+        
+        function renderScenarios() {
+            const list = document.getElementById('scenario-list');
+            
+            if (aiScenarios.length === 0) {
+                list.innerHTML = '<li class="scenario-item"><p>Nenhum cenário disponível</p></li>';
+                return;
+            }
+            
+            list.innerHTML = aiScenarios.map(s => `
+                <li class="scenario-item" onclick="runScenario('${s.id}')">
+                    <h4>🎭 ${s.name}</h4>
+                    <p>${s.description}</p>
+                    <div class="meta">⏱️ Máx ${s.max_turns} turnos</div>
+                </li>
+            `).join('');
+        }
+        
+        async function runScenario(scenarioId) {
+            if (aiRunning) {
+                alert('⚠️ Já há um teste em andamento');
+                return;
+            }
+            
+            // Pegar telefone selecionado
+            const telefone = getSelectedPhone();
+            if (!telefone) {
+                alert('⚠️ Selecione um telefone antes de iniciar a simulação');
+                return;
+            }
+            
+            aiRunning = true;
+            closeAIModal();
+            
+            // Limpar mensagens anteriores
+            document.getElementById('messages').innerHTML = '';
+            
+            const scenario = aiScenarios.find(s => s.id === scenarioId);
+            addMessage(`🤖 Iniciando simulação: ${scenario.name}\n\n📱 Telefone: ${telefone}\n\n${scenario.description}\n\n⏳ Aguarde...`, false);
+            
+            try {
+                const response = await fetch('/ai-test/stream/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        scenario_id: scenarioId,
+                        telefone: telefone
+                    })
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const event = JSON.parse(line.slice(6));
+                                handleAIEvent(event);
+                            } catch (e) {
+                                console.error('Erro ao parsear evento:', e);
+                            }
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                addMessage(`❌ Erro na simulação: ${error.message}`, false);
+            } finally {
+                aiRunning = false;
+            }
+        }
+        
+        function handleAIEvent(event) {
+            switch (event.type) {
+                case 'start':
+                    // Já exibimos a mensagem inicial
+                    break;
+                    
+                case 'user':
+                    addMessage(`[Turn ${event.turn}] ${event.message}`, true);
+                    break;
+                    
+                case 'bot':
+                    addMessage(event.message, false);
+                    break;
+                    
+                case 'end':
+                    const resultEmoji = event.result === 'success' ? '✅' : 
+                                       event.result === 'failed' ? '❌' : 
+                                       event.result === 'timeout' ? '⏱️' : '⚠️';
+                    addMessage(`\n${resultEmoji} Simulação finalizada!\n\nResultado: ${event.result.toUpperCase()}\nEstado final: ${event.final_state || 'N/A'}${event.error ? '\nErro: ' + event.error : ''}`, false);
+                    break;
+                    
+                case 'error':
+                    addMessage(`❌ Erro: ${event.message}`, false);
+                    break;
+            }
+        }
         
         // Mensagem inicial
         window.onload = () => {
             loadCustomPhones();
-            addMessage('👋 Olá! Selecione um telefone e comece a testar o AgentNFe.\n\n💡 Experimente: "Emitir nota de 1500 reais para Empresa XYZ"\n\n✅ Você pode digitar um telefone manualmente selecionando "✏️ Digitar manualmente..."', false);
+            addMessage('👋 Olá! Selecione um telefone e comece a testar o AgentNFe.\n\n💡 Experimente: "Emitir nota de 1500 reais para Empresa XYZ"\n\n✅ Você pode digitar um telefone manualmente selecionando "✏️ Digitar manualmente..."\n\n🤖 Clique em "Simular IA" para testar com inteligência artificial!', false);
         };
     </script>
+
+    <!-- Modal de Seleção de Cenário -->
+    <div class="modal-overlay" id="ai-modal" onclick="if(event.target === this) closeAIModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🤖 Simulação IA vs Sistema</h3>
+                <button class="modal-close" onclick="closeAIModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #8b949e; font-size: 12px; margin-bottom: 15px;">
+                    Selecione um cenário para simular uma conversa com IA:
+                </p>
+                <ul class="scenario-list" id="scenario-list">
+                    <li class="scenario-item"><p>Carregando...</p></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

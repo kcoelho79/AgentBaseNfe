@@ -27,6 +27,12 @@ urlpatterns = [
     path('send/', core_views.send_message, name='send_message'),
     path('clear/<str:telefone>/', core_views.clear_state, name='clear_state'),
     path('health/', core_views.health, name='health'),
+    path('logs/', core_views.get_logs, name='get_logs'),
+    
+    # AI Test Simulation
+    path('ai-test/scenarios/', core_views.list_ai_scenarios, name='ai_scenarios'),
+    path('ai-test/run/', core_views.run_ai_scenario, name='ai_run'),
+    path('ai-test/stream/', core_views.run_ai_scenario_stream, name='ai_stream'),
 ]
 
 # Servir arquivos estáticos e de media em desenvolvimento
