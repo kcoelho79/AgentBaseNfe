@@ -89,6 +89,26 @@
             flex-wrap: wrap;
         }
 
+        .phone-selector {
+            display: flex;
+            gap: 5px;
+            flex: 0 0 auto;
+        }
+
+        .phone-selector select {
+            flex: 0 0 200px;
+        }
+
+        .phone-selector input {
+            flex: 0 0 150px;
+            min-width: 120px;
+        }
+
+        .phone-selector button {
+            padding: 10px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
         select, input, button {
             padding: 10px;
             border: 1px solid #4a5568;
@@ -101,11 +121,7 @@
             color: #e2e8f0;
         }
 
-        select {
-            flex: 0 0 200px;
-        }
-
-        input {
+        input#mensagem {
             flex: 1;
             min-width: 200px;
         }
@@ -184,12 +200,22 @@
         <div class="messages" id="messages"></div>
         
         <div class="input-area">
-            <select id="telefone">
-                <option value="">📱 Selecione o telefone</option>
-                {% for nome, tel in telefones.items %}
-                <option value="{{ tel }}">{{ nome }} ({{ tel }})</option>
-                {% endfor %}
-            </select>
+            <div class="phone-selector">
+                <select id="telefone" onchange="onPhoneSelect()">
+                    <option value="">📱 Selecione o telefone</option>
+                    <option value="__manual__">✏️ Digitar manualmente...</option>
+                    {% for nome, tel in telefones.items %}
+                    <option value="{{ tel }}">{{ nome }} ({{ tel }})</option>
+                    {% endfor %}
+                </select>
+                <input 
+                    type="text" 
+                    id="telefone-manual" 
+                    placeholder="Ex: 5511999999999"
+                    style="display: none;"
+                >
+                <button id="btn-add-phone" onclick="addPhone()" style="display: none;" title="Salvar telefone">➕</button>
+            </div>
             
             <input 
                 type="text" 
@@ -203,6 +229,71 @@
     </div>
     
     <script>
+        // Telefones salvos localmente
+        let telefonesCustom = JSON.parse(localStorage.getItem('telefonesCustom') || '{}');
+        
+        // Carregar telefones custom no select ao iniciar
+        function loadCustomPhones() {
+            const select = document.getElementById('telefone');
+            for (const [nome, tel] of Object.entries(telefonesCustom)) {
+                const option = document.createElement('option');
+                option.value = tel;
+                option.textContent = `${nome} (${tel})`;
+                select.appendChild(option);
+            }
+        }
+        
+        function onPhoneSelect() {
+            const select = document.getElementById('telefone');
+            const manualInput = document.getElementById('telefone-manual');
+            const addBtn = document.getElementById('btn-add-phone');
+            
+            if (select.value === '__manual__') {
+                manualInput.style.display = 'block';
+                addBtn.style.display = 'block';
+                manualInput.focus();
+            } else {
+                manualInput.style.display = 'none';
+                addBtn.style.display = 'none';
+            }
+        }
+        
+        function getSelectedPhone() {
+            const select = document.getElementById('telefone');
+            if (select.value === '__manual__') {
+                return document.getElementById('telefone-manual').value.replace(/\D/g, '');
+            }
+            return select.value;
+        }
+        
+        function addPhone() {
+            const phone = document.getElementById('telefone-manual').value.replace(/\D/g, '');
+            if (!phone || phone.length < 10) {
+                alert('⚠️ Digite um telefone válido (mínimo 10 dígitos)');
+                return;
+            }
+            
+            const nome = prompt('📝 Nome para identificar este telefone:', `custom_${Object.keys(telefonesCustom).length + 1}`);
+            if (!nome) return;
+            
+            // Salvar no localStorage
+            telefonesCustom[nome] = phone;
+            localStorage.setItem('telefonesCustom', JSON.stringify(telefonesCustom));
+            
+            // Adicionar no select
+            const select = document.getElementById('telefone');
+            const option = document.createElement('option');
+            option.value = phone;
+            option.textContent = `${nome} (${phone})`;
+            select.appendChild(option);
+            
+            // Selecionar o novo telefone
+            select.value = phone;
+            onPhoneSelect();
+            
+            addMessage(`✅ Telefone "${nome}" (${phone}) salvo!`, false);
+        }
+        
         function addMessage(text, isUser) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -240,11 +331,11 @@
         }
         
         async function sendMessage() {
-            const telefone = document.getElementById('telefone').value;
+            const telefone = getSelectedPhone();
             const mensagem = document.getElementById('mensagem').value;
             
             if (!telefone) {
-                alert('⚠️ Selecione um telefone');
+                alert('⚠️ Selecione ou digite um telefone');
                 return;
             }
             
@@ -276,10 +367,11 @@
                 setTimeout(() => {
                     hideTyping();
                     
-                    if (data.status === 'success') {
-                        addMessage(data.resposta, false);
+                    if (data.status === 'success' || data.status === 'rejected') {
+                        // Tanto sucesso quanto rejeição têm resposta em 'resposta'
+                        addMessage(data.resposta || '(resposta vazia)', false);
                     } else {
-                        addMessage(`❌ Erro: ${data.error}`, false);
+                        addMessage(`❌ Erro: ${data.error || 'Erro desconhecido'}`, false);
                     }
                 }, 800);
                 
@@ -291,7 +383,7 @@
         }
         
         async function clearState() {
-            const telefone = document.getElementById('telefone').value;
+            const telefone = getSelectedPhone();
             
             if (!telefone) {
                 alert('⚠️ Selecione um telefone primeiro');
@@ -326,7 +418,8 @@
         
         // Mensagem inicial
         window.onload = () => {
-            addMessage('👋 Olá! Selecione um telefone e comece a testar o AgentNFe.\n\n💡 Experimente: "Emitir nota de 1500 reais para Empresa XYZ"', false);
+            loadCustomPhones();
+            addMessage('👋 Olá! Selecione um telefone e comece a testar o AgentNFe.\n\n💡 Experimente: "Emitir nota de 1500 reais para Empresa XYZ"\n\n✅ Você pode digitar um telefone manualmente selecionando "✏️ Digitar manualmente..."', false);
         };
     </script>
 </body>
