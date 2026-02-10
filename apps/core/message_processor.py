@@ -7,13 +7,16 @@ from apps.core.reponse_builder import ResponseBuilder
 from apps.core.agent_extractor import AIExtractor
 from apps.core.session_manager import SessionManager
 from apps.core.states import SessionState
+from apps.contabilidade.models import UsuarioEmpresa
 
 logger = logging.getLogger(__name__)
 
 
 class MessageProcessor:
     """
-    Orquestrador de mensagens para emissão de NFSe
+    Orquestrador de mensagens para emissão de NFSe.
+    
+    NOTA: Espera receber usuario_empresa já validado pelo Gateway.
     """
     
     
@@ -24,13 +27,19 @@ class MessageProcessor:
     
     # ==================== PROCESSAMENTO PRINCIPAL ====================
     
-    def process(self, telefone: str, mensagem: str) -> str:
+    def process(
+        self,
+        telefone: str,
+        mensagem: str,
+        usuario_empresa: UsuarioEmpresa = None
+    ) -> str:
         """
         Processa mensagem através do fluxo linear.
         
         Args:
             telefone: Telefone do cliente
             mensagem: Texto da mensagem enviada
+            usuario_empresa: Usuário já validado pelo Gateway (opcional para retrocompatibilidade)
             
         Returns:
             Resposta para o cliente
@@ -38,28 +47,24 @@ class MessageProcessor:
         logger.info('Processando mensagem', extra={'telefone': telefone})
         
         try:
-
-            # 1. VERIFICAR TELEFONE CADASTRADO
-            from apps.contabilidade.models import UsuarioEmpresa
-            usuario_empresa = UsuarioEmpresa.objects.filter(
-                telefone=telefone,
-                is_active=True
-            ).select_related('empresa').first()
+            # Se não veio do Gateway, buscar (retrocompatibilidade)
+            if usuario_empresa is None:
+                usuario_empresa = UsuarioEmpresa.objects.filter(
+                    telefone=telefone,
+                    is_active=True
+                ).select_related('empresa__contabilidade').first()
+                
+                if not usuario_empresa:
+                    logger.warning(f'Telefone {telefone} não cadastrado', extra={'telefone': telefone})
+                    return ""
             
-            if not usuario_empresa:
-                logger.warning(f'Telefone {telefone} não cadastrado', extra={'telefone': telefone})
-                return ""
-                return (
-                    "❌ Seu telefone não está cadastrado em nosso sistema.\n\n"
-                    "Por favor, entre em contato com sua contabilidade para cadastrar seu número "
-                    "e poder emitir notas fiscais via WhatsApp."
-                )
-            # 2. RECUPERAR OU CRIAR A SESSAO
-
             contabilidade = usuario_empresa.empresa.contabilidade
-            logger.info(f'usuario:{usuario_empresa} do Telefone {telefone}\npertence à contabilidade {contabilidade}\nempresa:{usuario_empresa.empresa}\n\n', extra={'telefone': telefone}) 
-
-            return "🚧 Em construção: O processamento de mensagens ainda está sendo desenvolvido. Em breve você poderá enviar suas notas fiscais por aqui!"
+            logger.info(
+                f'Usuario: {usuario_empresa.nome} | '
+                f'Empresa: {usuario_empresa.empresa.razao_social} | '
+                f'Contabilidade: {contabilidade.razao_social}',
+                extra={'telefone': telefone}
+            )
 
             session = self.session_manager.get_or_create_session(telefone)
 

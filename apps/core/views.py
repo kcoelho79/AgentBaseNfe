@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
-from apps.core.message_processor import MessageProcessor
+from apps.core.message_gateway import MessageGateway
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +37,15 @@ def send_message(request):
                 status=400
             )
         
-        # Processar mensagem usando MessageProcessor
-        processor = MessageProcessor()
-        resposta = processor.process(telefone, mensagem)
+        # Usar Gateway para validar e processar
+        gateway = MessageGateway(send_rejection_message=True)
+        result = gateway.process(telefone, mensagem)
         
-        logger.info("Resposta: {resposta}")
+        logger.info(f"Resposta: {result.response}")
         
         return JsonResponse({
-            'status': 'success',
-            'resposta': resposta,
+            'status': 'success' if result.success else 'rejected',
+            'resposta': result.response,
             'telefone': telefone
         })
     

@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.contabilidade.mixins import TenantMixin
-from apps.core.message_processor import MessageProcessor
+from apps.core.message_gateway import MessageGateway
 from .models import CanalWhatsApp, WebhookLog
 from .forms import CanalWhatsAppForm
 from .services.evolution import EvolutionService, EvolutionAPIError
@@ -442,7 +442,8 @@ def webhook_receiver(request, instance_name):
     - QRCODE_UPDATED: Novo QR Code gerado
     """
 
-    logger.info(f"\n\n\n Webhook recebido para {instance_name}\n\n\n")
+    logger.info(f"{50 * '='}\n==========  INICIO WEBHOOK RECEIVER  ==========\nInstância: {instance_name}\n{50 * '='}")
+    
     try:
         # Parse do payload
         try:
@@ -473,7 +474,7 @@ def webhook_receiver(request, instance_name):
             processed=False
         )
         
-        # Processar evento
+        # Processar eventominha preocupação sao
         try:
             if event_type == 'MESSAGES_UPSERT':
                 _handle_message_event(canal, payload, webhook_log)
@@ -493,6 +494,8 @@ def webhook_receiver(request, instance_name):
             logger.exception(f"Erro ao processar evento {event_type}")
             webhook_log.error_message = str(e)
             webhook_log.save()
+
+        logger.info(f"{50 * '='}\n==========  FIM WEBHOOK RECEIVER  ==========\nInstância: {instance_name}\n{50 * '='}")
         
         return JsonResponse({'status': 'ok'})
         
@@ -511,7 +514,6 @@ def _handle_message_event(canal, payload, webhook_log):
     data = payload.get('data', {})
 
 
-    logger.info(f"\n\nProcessando mensagem do webhook para {canal.instance_name if canal else 'instância desconhecida'}\n\n")
     logger.debug(f"\n\nPayload do evento: {json.dumps(payload)[:500]}\n\n")  # Log do payload para debug
     
     # Verificar se é mensagem de grupo (ignorar)
@@ -566,23 +568,36 @@ def _handle_message_event(canal, payload, webhook_log):
     
     logger.info(f"Mensagem recebida de {phone}: {message_text[:50]}...")
     
-    # Processar com MessageProcessor
+    # Processar com MessageGateway
     try:
-        processor = MessageProcessor()
-        response_text = processor.process(phone, message_text)
+        logger.info(f"{50 * '='}\n==========  INICIO PROCESSAMENTO MENSAGEM  ==========\nTelefone: {phone}\n{50 * '='}")
         
-        webhook_log.response_text = response_text
+        # Usar Gateway (ignora não cadastrados no webhook)
+        gateway = MessageGateway(send_rejection_message=False)
+        result = gateway.process(
+            telefone=phone,
+            mensagem=message_text,
+            instance_name=canal.instance_name if canal else None
+        )
+
+        logger.info(f"Resposta do gateway para {phone}: {result.response[:50]}...")
+        
+        logger.info(f"{50 * '='}\n==========  FIM PROCESSAMENTO MENSAGEM  ==========\nTelefone: {phone}\n{50 * '='}")
+        
+        webhook_log.response_text = result.response
         webhook_log.processed = True
+        if not result.success:
+            webhook_log.error_message = f"Rejeitado: {result.reject_reason}"
         webhook_log.save()
         
-        # Enviar resposta via WhatsApp
-        if canal and response_text:
+        # Enviar resposta via WhatsApp (só se tiver resposta)
+        if canal and result.response:
             try:
                 service = EvolutionService()
                 service.send_text_message(
                     instance_name=canal.instance_name,
                     phone_number=phone,
-                    message=response_text
+                    message=result.response
                 )
                 logger.info(f"Resposta enviada para {phone}")
             except EvolutionAPIError as e:
