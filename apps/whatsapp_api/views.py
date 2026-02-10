@@ -441,6 +441,8 @@ def webhook_receiver(request, instance_name):
     - CONNECTION_UPDATE: Mudança no status da conexão
     - QRCODE_UPDATED: Novo QR Code gerado
     """
+
+    logger.info(f"\n\n\n Webhook recebido para {instance_name}\n\n\n")
     try:
         # Parse do payload
         try:
@@ -507,11 +509,18 @@ def _handle_message_event(canal, payload, webhook_log):
     e responde via WhatsApp.
     """
     data = payload.get('data', {})
+
+
+    logger.info(f"\n\nProcessando mensagem do webhook para {canal.instance_name if canal else 'instância desconhecida'}\n\n")
+    logger.debug(f"\n\nPayload do evento: {json.dumps(payload)[:500]}\n\n")  # Log do payload para debug
     
     # Verificar se é mensagem de grupo (ignorar)
     key = data.get('key', {})
     remote_jid = key.get('remoteJid', '')
     
+
+    logger.debug(f"\n\nRemote JID: {remote_jid}\n\n")
+
     if '@g.us' in remote_jid:
         logger.debug(f"Mensagem de grupo ignorada: {remote_jid}")
         webhook_log.processed = True
@@ -529,13 +538,13 @@ def _handle_message_event(canal, payload, webhook_log):
     # Primeiro tenta do remoteJid, mas se for @lid (linked ID), usa o campo 'sender'
     if '@lid' in remote_jid:
         # Formato @lid é um ID interno, o número real está em 'sender'
-        sender = payload.get('sender', '')
+        sender = key.get('senderPn', '')
         phone = sender.replace('@s.whatsapp.net', '').replace('@lid', '')
         logger.debug(f"Convertido @lid para sender: {remote_jid} -> {phone}")
     else:
         phone = remote_jid.replace('@s.whatsapp.net', '')
     
-    logger.debug(f"Mensagem recebida de {phone}")
+    logger.debug(f"\n\nMensagem recebida de {phone}\n\n")
     
     # Extrair mensagem
     message_data = data.get('message', {})

@@ -48,12 +48,19 @@ class MessageProcessor:
             
             if not usuario_empresa:
                 logger.warning(f'Telefone {telefone} não cadastrado', extra={'telefone': telefone})
+                return ""
                 return (
                     "❌ Seu telefone não está cadastrado em nosso sistema.\n\n"
                     "Por favor, entre em contato com sua contabilidade para cadastrar seu número "
                     "e poder emitir notas fiscais via WhatsApp."
                 )
             # 2. RECUPERAR OU CRIAR A SESSAO
+
+            contabilidade = usuario_empresa.empresa.contabilidade
+            logger.info(f'usuario:{usuario_empresa} do Telefone {telefone}\npertence à contabilidade {contabilidade}\nempresa:{usuario_empresa.empresa}\n\n', extra={'telefone': telefone}) 
+
+            return "🚧 Em construção: O processamento de mensagens ainda está sendo desenvolvido. Em breve você poderá enviar suas notas fiscais por aqui!"
+
             session = self.session_manager.get_or_create_session(telefone)
 
 
