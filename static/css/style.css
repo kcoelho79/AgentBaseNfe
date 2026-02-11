@@ -193,6 +193,25 @@ a:hover {
     color: var(--primary);
 }
 
+/* Sidebar Toggle Button */
+#sidebarToggle {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+#sidebarToggle:hover {
+    color: var(--text-primary);
+}
+
+/* Navbar Toggler (hamburger for navbar collapse) */
+.navbar .navbar-toggler {
+    border-color: var(--border-color);
+}
+
+.navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23475569' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
 .navbar .dropdown-menu {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -949,6 +968,10 @@ a:hover {
     filter: invert(1);
 }
 
+[data-theme="dark"] .navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23CBD5E1' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
 /* =============================================================================
    Breadcrumb
    ============================================================================= */
@@ -1245,14 +1268,30 @@ dl.row dd {
     .sidebar {
         position: fixed;
         top: 0;
+        bottom: 0;
+        left: 0;
+        width: 260px;
+        max-width: 80vw;
         padding-top: 56px;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         z-index: 1050;
+        display: block !important;
     }
 
     .sidebar.show {
         transform: translateX(0);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
     }
 
     .metric-card .metric-value {
