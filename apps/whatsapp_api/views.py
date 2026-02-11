@@ -640,7 +640,13 @@ def _handle_connection_event(canal, payload, webhook_log):
         # Extrair número se conectado
         if new_status == 'connected':
             instance_data = data.get('instance', {})
-            owner = instance_data.get('owner', '')
+            # Verificar se instance_data é um dicionário antes de usar .get()
+            if isinstance(instance_data, dict):
+                owner = instance_data.get('owner', '')
+            else:
+                # Se instance é uma string, tentar buscar owner em outro lugar do payload
+                owner = data.get('owner', '')
+            
             if owner:
                 canal.phone_number = owner.replace('@s.whatsapp.net', '')
         
