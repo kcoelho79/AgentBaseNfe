@@ -63,6 +63,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Theme toggle
+    var themeToggle = document.getElementById('themeToggle');
+    var themeIcon = document.getElementById('themeIcon');
+
+    function updateThemeIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (themeIcon) {
+            themeIcon.className = isDark ? 'bi bi-sun fs-5' : 'bi bi-moon fs-5';
+        }
+    }
+
+    if (themeToggle) {
+        updateThemeIcon();
+        themeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+        });
+    }
+
     // Confirm delete actions
     var deleteButtons = document.querySelectorAll('[data-confirm]');
     deleteButtons.forEach(function(button) {
