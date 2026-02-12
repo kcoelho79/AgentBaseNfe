@@ -176,6 +176,11 @@ class EmpresaCreateView(TenantMixin, CreateView):
     template_name = 'contabilidade/empresa/form.html'
     success_url = reverse_lazy('contabilidade:empresa_list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['contabilidade'] = self.request.user.contabilidade
+        return kwargs
+
     def form_valid(self, form):
         form.instance.contabilidade = self.request.user.contabilidade
         messages.success(self.request, 'Empresa cadastrada com sucesso!')
@@ -215,6 +220,11 @@ class EmpresaUpdateView(TenantMixin, UpdateView):
     model = Empresa
     form_class = EmpresaForm
     template_name = 'contabilidade/empresa/form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['contabilidade'] = self.request.user.contabilidade
+        return kwargs
 
     def get_success_url(self):
         messages.success(self.request, 'Empresa atualizada com sucesso!')

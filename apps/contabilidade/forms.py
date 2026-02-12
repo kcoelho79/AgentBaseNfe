@@ -41,6 +41,7 @@ class EmpresaForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.contabilidade = kwargs.pop('contabilidade', None)
         super().__init__(*args, **kwargs)
         # Campos com valores padrão não são obrigatórios
         self.fields['codigo_pais'].required = False
@@ -50,7 +51,24 @@ class EmpresaForm(forms.ModelForm):
 
     def clean_cpf_cnpj(self):
         cpf_cnpj = self.cleaned_data.get('cpf_cnpj', '')
-        return ''.join(filter(str.isdigit, cpf_cnpj))
+        cpf_cnpj_limpo = ''.join(filter(str.isdigit, cpf_cnpj))
+        
+        # Verificar duplicidade na contabilidade
+        if self.contabilidade:
+            qs = Empresa.objects.filter(
+                contabilidade=self.contabilidade,
+                cpf_cnpj=cpf_cnpj_limpo
+            )
+            # Se editando, excluir a própria instância
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            
+            if qs.exists():
+                raise forms.ValidationError(
+                    'Já existe uma empresa cadastrada com este CPF/CNPJ.'
+                )
+        
+        return cpf_cnpj_limpo
 
 
     def clean_codigo_pais(self):
