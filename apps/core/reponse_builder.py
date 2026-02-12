@@ -1,8 +1,6 @@
 import logging
 from typing import Dict
 from decimal import Decimal
-from apps.nfse.models import ClienteTomador
-
 logger = logging.getLogger(__name__)
 
 
@@ -74,12 +72,15 @@ Ou digite *cancelar* para cancelar.""".strip()
         # Normaliza CNPJ (remove formatação)
         cnpj_limpo = ''.join(filter(str.isdigit, cnpj)) if cnpj != 'Não informado' else ''
         
-        # Busca razão social no banco
+        # Busca razão social (sem criar tomador)
         razao_social = 'Não informado'
         if cnpj_limpo:
-            tomador = ClienteTomador.objects.filter(cnpj=cnpj_limpo).first()
-            if tomador:
-                razao_social = tomador.razao_social
+            try:
+                from apps.nfse.services.receita_federal import ReceitaFederalService
+                dados_cnpj = ReceitaFederalService.consultar_razao_social(cnpj_limpo)
+                razao_social = dados_cnpj.get('razao_social') or 'Não informado'
+            except Exception as e:
+                logger.warning(f"Erro ao buscar razão social: {e}")
         
         valor_iss = valor * aliquota_iss
         

@@ -42,6 +42,46 @@ class ReceitaFederalService:
         return dados
     
     @classmethod
+    def consultar_razao_social(cls, cnpj: str) -> dict:
+        """
+        Busca razão social e status: primeiro no banco, depois na API.
+        NÃO cria tomador (usado apenas para espelho/confirmação).
+        
+        Args:
+            cnpj: CNPJ (apenas números ou formatado)
+            
+        Returns:
+            dict com 'razao_social', 'ativo' e 'situacao_cadastral'
+        """
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+        resultado = {'razao_social': None, 'ativo': None, 'situacao_cadastral': None}
+        
+        # 1. Tenta buscar no banco
+        tomador = ClienteTomador.objects.filter(cnpj=cnpj_limpo).first()
+        if tomador:
+            logger.info(f"Razão social encontrada no banco: {tomador.razao_social}")
+            resultado['razao_social'] = tomador.razao_social
+            # Se tiver dados_receita_raw, pega situação cadastral
+            if tomador.dados_receita_raw:
+                situacao = tomador.dados_receita_raw.get('descricao_situacao_cadastral', '')
+                resultado['situacao_cadastral'] = situacao
+                resultado['ativo'] = situacao.upper() == 'ATIVA'
+            return resultado
+        
+        # 2. Consulta API
+        try:
+            dados = cls.consultar_cnpj(cnpj_limpo)
+            resultado['razao_social'] = dados.get('razao_social')
+            situacao = dados.get('descricao_situacao_cadastral', '')
+            resultado['situacao_cadastral'] = situacao
+            resultado['ativo'] = situacao.upper() == 'ATIVA'
+            logger.info(f"Razão social consultada na API: {resultado['razao_social']} (ativo: {resultado['ativo']})")
+        except Exception as e:
+            logger.warning(f"Erro ao consultar razão social na API: {e}")
+        
+        return resultado
+    
+    @classmethod
     def buscar_ou_criar_tomador(cls, cnpj: str) -> ClienteTomador:
         """
         Busca tomador no banco ou consulta Receita e cria.
