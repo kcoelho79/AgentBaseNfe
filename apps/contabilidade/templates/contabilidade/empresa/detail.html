@@ -80,6 +80,24 @@
                             <dt class="col-sm-4">Inscrição Estadual</dt>
                             <dd class="col-sm-8">{{ empresa.inscricao_estadual|default:"-" }}</dd>
 
+                            <dt class="col-sm-4">CNAE Principal</dt>
+                            <dd class="col-sm-8">
+                                {% if empresa.cnae_principal %}
+                                    <span class="text-primary fw-medium">{{ empresa.cnae_principal }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </dd>
+
+                            {% if empresa.cnae_secundarios %}
+                            <dt class="col-sm-4">CNAEs Secundários</dt>
+                            <dd class="col-sm-8">
+                                {% for cnae in empresa.cnae_secundarios.splitlines %}
+                                <div class="small text-muted">{{ cnae }}</div>
+                                {% endfor %}
+                            </dd>
+                            {% endif %}
+
                             <dt class="col-sm-4">Regime Tributário</dt>
                             <dd class="col-sm-8">
                                 {{ empresa.get_regime_tributario_display|default:"-" }}

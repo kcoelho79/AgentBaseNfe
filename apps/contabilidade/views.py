@@ -606,21 +606,31 @@ class ConsultarCNPJView(LoginRequiredMixin, View):
         try:
             dados = ReceitaFederalService.consultar_cnpj(cnpj_limpo)
 
-            # Formatar código CNAE: 9430800 → "9430-8/00"
+            # Formatar código CNAE: 9430800 → "94.30-8-00"
             def formatar_cnae(codigo):
                 s = str(codigo).strip()
                 if len(s) == 7 and s.isdigit():
-                    return f"{s[:4]}-{s[4]}/{s[5:]}"
+                    return f"{s[:2]}.{s[2:4]}-{s[4]}-{s[5:]}"
                 return s
 
-            # Processar CNAEs
+            # Processar CNAEs com código + descrição
             cnae_principal = ''
             cnae_secundarios = ''
             if dados.get('cnae_fiscal'):
-                cnae_principal = formatar_cnae(dados['cnae_fiscal'])
+                codigo_formatado = formatar_cnae(dados['cnae_fiscal'])
+                descricao = dados.get('cnae_fiscal_descricao', '')
+                cnae_principal = f"{codigo_formatado} - {descricao}" if descricao else codigo_formatado
             if dados.get('cnaes_secundarios'):
-                cnaes = [formatar_cnae(c.get('codigo', '')) for c in dados['cnaes_secundarios'] if c.get('codigo')]
-                cnae_secundarios = ', '.join(cnaes)
+                cnaes = []
+                for c in dados['cnaes_secundarios']:
+                    if c.get('codigo'):
+                        codigo_formatado = formatar_cnae(c['codigo'])
+                        descricao = c.get('descricao', '')
+                        if descricao:
+                            cnaes.append(f"{codigo_formatado} - {descricao}")
+                        else:
+                            cnaes.append(codigo_formatado)
+                cnae_secundarios = '\n'.join(cnaes)
 
             # Determinar regime tributário baseado em natureza jurídica e porte
             regime_tributario = 3  # Regime Normal por padrão

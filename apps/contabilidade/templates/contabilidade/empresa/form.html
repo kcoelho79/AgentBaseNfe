@@ -77,15 +77,15 @@
                         {{ form.nome_fantasia }}
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="id_cnae_principal" class="form-label">CNAE Principal</label>
-                            {{ form.cnae_principal }}
-                        </div>
-                        <div class="col-md-8 mb-3">
-                            <label for="id_cnae_secundarios" class="form-label">CNAEs Secundários</label>
-                            {{ form.cnae_secundarios }}
-                        </div>
+                    <div class="mb-3">
+                        <label for="id_cnae_principal" class="form-label">CNAE Principal</label>
+                        {{ form.cnae_principal }}
+                        <small class="text-muted">Preenchido automaticamente ao consultar o CNPJ</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_cnae_secundarios" class="form-label">CNAEs Secundários</label>
+                        {{ form.cnae_secundarios }}
+                        <small class="text-muted">Um CNAE por linha (código - descrição)</small>
                     </div>
 
                     <div class="row">
