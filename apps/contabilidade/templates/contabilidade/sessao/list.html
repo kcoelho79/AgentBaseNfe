@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load time_filters %}
 
 {% block title %}Sessões - AgentNFe{% endblock %}
 
@@ -78,7 +79,7 @@
                             </a>
                             {% if sessao.empresa_nome %}
                             <div class="small text-muted mt-1">
-                                <i class="bi bi-building me-1"></i>{{ sessao.empresa_nome }}
+                                <i class="bi bi-building me-1"></i>{{ sessao.empresa_nome|truncatechars:20 }}
                             </div>
                             {% endif %}
                         </td>
@@ -126,7 +127,7 @@
                         </td>
                         <td>
                             <span data-bs-toggle="tooltip" title="{{ sessao.session_created_at|date:'d/m/Y H:i:s' }}">
-                                {{ sessao.session_created_at|timesince }} atrás
+                                {{ sessao.session_created_at|timesince_short }}
                             </span>
                         </td>
                     </tr>

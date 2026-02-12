@@ -83,11 +83,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 estado__in=SessionState.active_states()
             ).count()
 
-            # Sessões recentes (últimas 10)
+            # Sessões recentes ATIVAS (últimas 10)
             context['sessoes_recentes'] = SessionSnapshot.objects.filter(
                 empresa_id__in=Empresa.objects.filter(
                     contabilidade=contabilidade
-                ).values_list('id', flat=True)
+                ).values_list('id', flat=True),
+                estado__in=SessionState.active_states()
             ).order_by('-session_updated_at')[:10]
 
             # Lista de certificados vencendo (para alertas)
