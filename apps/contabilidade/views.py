@@ -703,6 +703,22 @@ class ContabilidadeUpdateView(LoginRequiredMixin, UpdateView):
         # Sempre retorna a contabilidade do usuário logado
         return self.request.user.contabilidade
 
+    def post(self, request, *args, **kwargs):
+        # Necessário para processar request.FILES (upload de arquivos)
+        self.object = self.get_object()
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def get_form_kwargs(self):
+        # Inclui request.FILES no form para processar uploads
+        kwargs = super().get_form_kwargs()
+        if self.request.method in ('POST', 'PUT'):
+            kwargs['files'] = self.request.FILES
+        return kwargs
+
     def form_valid(self, form):
         messages.success(self.request, 'Dados da contabilidade atualizados com sucesso!')
         return super().form_valid(form)

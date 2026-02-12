@@ -24,6 +24,15 @@ class Contabilidade(models.Model):
     cidade = models.CharField('cidade', max_length=100, blank=True)
     estado = models.CharField('estado', max_length=2, blank=True)
 
+    # Logotipo
+    logotipo = models.ImageField(
+        'logotipo',
+        upload_to='contabilidades/logos/',
+        blank=True,
+        null=True,
+        help_text='Imagem PNG ou JPG, máximo 2MB'
+    )
+
     # Status
     is_active = models.BooleanField('ativo', default=True)
     created_at = models.DateTimeField('criado em', auto_now_add=True)
