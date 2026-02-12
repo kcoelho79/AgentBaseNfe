@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load time_filters %}
 
 {% block title %}Dashboard - AgentNFe{% endblock %}
 
@@ -91,7 +92,7 @@
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>Telefone</th>
+                                <th>Usuário</th>
                                 <th>Empresa</th>
                                 <th>Estado</th>
                                 <th>Atualização</th>
@@ -100,14 +101,14 @@
                         <tbody>
                             {% for sessao in sessoes_recentes %}
                             <tr>
-                                <td>{{ sessao.telefone }}</td>
-                                <td>{{ sessao.empresa.razao_social|truncatechars:25 }}</td>
+                                <td>{{ sessao.usuario_nome|default:sessao.telefone|truncatechars:20 }}</td>
+                                <td>{{ sessao.empresa_nome|default:"—"|truncatechars:20 }}</td>
                                 <td>
                                     <span class="badge {% if sessao.estado == 'processando' %}bg-success{% elif sessao.estado == 'aguardando_confirmacao' %}bg-warning{% else %}bg-secondary{% endif %}">
                                         {{ sessao.estado }}
                                     </span>
                                 </td>
-                                <td>{{ sessao.updated_at|timesince }} atrás</td>
+                                <td>{{ sessao.session_updated_at|timesince_short }}</td>
                             </tr>
                             {% empty %}
                             <tr>
