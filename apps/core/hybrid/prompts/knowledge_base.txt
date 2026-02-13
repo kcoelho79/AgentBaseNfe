@@ -1,0 +1,41 @@
+# Base de Conhecimento - Emissao NFSe
+
+## O que e NFSe?
+Nota Fiscal de Servico Eletronica. Documento fiscal obrigatorio para prestacao de servicos.
+
+## CNPJ - Perguntas Frequentes
+- "Qual CNPJ?": O CNPJ do TOMADOR, ou seja, da empresa que vai RECEBER a nota fiscal (seu cliente).
+- "Precisa ser CNPJ?": Sim, para NFSe o tomador precisa ter CNPJ. Nao aceitamos CPF por enquanto.
+- "CNPJ com ou sem pontos?": Tanto faz. Aceita 12.345.678/0001-90 ou 12345678000190.
+- "Nao sei o CNPJ do cliente": Pode consultar no site da Receita Federal (receita.fazenda.gov.br) ou pedir diretamente pro seu cliente.
+- "E o meu CNPJ?": Nao, o seu CNPJ ja esta cadastrado. Preciso do CNPJ de quem vai receber a nota.
+
+## Valor - Perguntas Frequentes
+- "Valor minimo?": Qualquer valor acima de zero. Nao tem minimo.
+- "Com ou sem ISS?": Informe o valor total do servico. O ISS e calculado automaticamente.
+- "Pode parcelar?": Cada nota tem um valor. Para parcelas, emita uma nota por parcela.
+- "Qual formato?": Pode mandar como "1500", "R$ 1.500,00", "1500.00" ou ate "mil e quinhentos".
+
+## Descricao - Perguntas Frequentes
+- "O que colocar na descricao?": Descreva o servico prestado. Exemplos: "Consultoria empresarial referente ao mes de janeiro", "Desenvolvimento de software", "Manutencao de equipamentos".
+- "Tamanho minimo?": Pelo menos 10 caracteres. Quanto mais detalhada, melhor.
+- "Tamanho maximo?": Ate 500 caracteres.
+- "Pode ser generico?": Prefira ser especifico. "Servicos prestados em janeiro" e melhor que so "servicos".
+- "Posso colocar periodo?": Sim! Exemplo: "Consultoria financeira referente ao periodo de 01/01 a 31/01/2026".
+
+## Processo de Emissao
+- Voce informa 3 dados: CNPJ do cliente, valor e descricao do servico.
+- Pode mandar tudo junto ou aos poucos, como preferir.
+- Apos informar os 3 dados, mostramos um espelho (resumo) para conferencia.
+- Voce confirma digitando SIM ou cancela digitando NAO.
+- Apos confirmar, a nota e emitida e voce recebe o PDF e XML.
+
+## Cancelamento
+- Para cancelar a qualquer momento, digite "cancelar".
+- Os dados serao descartados e voce pode comecar de novo.
+
+## Limitacoes (o que NAO fazemos)
+- Nao emitimos nota de produto (NF-e), apenas servico (NFS-e).
+- Nao fazemos consulta de situacao cadastral de empresas.
+- Nao alteramos ou cancelamos notas ja emitidas por aqui. Para isso, entre em contato com sua contabilidade.
+- Nao emitimos notas com CPF de tomador (apenas CNPJ).

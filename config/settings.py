@@ -287,3 +287,7 @@ LOGGING = {
 OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 OPENAI_MODEL = config('OPENAI_MODEL', default='gpt-4o-mini')
 OPENAI_EMBEDDING_MODEL = config('OPENAI_EMBEDDING_MODEL', default='text-embedding-3-small')
+
+# Feature Flags
+USE_HYBRID_AI = config('USE_HYBRID_AI', default=False, cast=bool)
+HYBRID_AI_PHONES = config('HYBRID_AI_PHONES', default='', cast=lambda v: [x.strip() for x in v.split(',') if x.strip()])
