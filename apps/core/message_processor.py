@@ -112,6 +112,10 @@ class MessageProcessor:
 
             session = self.session_manager.get_or_create_session(telefone)
 
+            # Propagar empresa_id na sessao para historico
+            if not session.empresa_id:
+                session.empresa_id = usuario_empresa.empresa_id
+
             # ADICIONAR MENSAGEM DO USUARIO
             session.add_user_message(mensagem)
 
@@ -119,7 +123,7 @@ class MessageProcessor:
             if session.estado == SessionState.AGUARDANDO_CONFIRMACAO.value:
                 resposta = self._handle_confirmacao(session, mensagem)
             elif self._should_use_hybrid(telefone):
-                resposta = self._processar_hybrid(session, mensagem)
+                resposta = self._processar_hybrid(session, mensagem, usuario_empresa)
             else:
                 resposta = self._processar_coleta(session, mensagem)
 
@@ -140,17 +144,26 @@ class MessageProcessor:
 
     # ==================== MODO HIBRIDO ====================
 
-    def _processar_hybrid(self, session: Session, mensagem: str) -> str:
+    def _processar_hybrid(self, session: Session, mensagem: str, usuario_empresa=None) -> str:
         """
         Processa mensagem usando arquitetura hibrida.
 
         Fluxo:
-            1. Classificar mensagem (sem IA)
-            2. Rotear para handler adequado
-            3. Gerar resposta
+            1. Verificar sugestao pendente
+            2. Classificar mensagem (sem IA)
+            3. Rotear para handler adequado
+            4. Gerar resposta
         """
+        # Verificar se ha sugestao pendente e usuario aceitou
+        if session.pending_suggestion and mensagem.strip().lower() in ('sim', 's'):
+            return self._aplicar_sugestao(session)
+
         tipo = self.classifier.classify(mensagem)
         logger.info(f"[hybrid] Mensagem classificada como '{tipo}'", extra={'telefone': session.telefone})
+
+        # Limpar sugestao pendente se usuario enviou outra coisa
+        if session.pending_suggestion:
+            session.pending_suggestion = None
 
         if tipo == 'saudacao':
             return self.smart_response.build_saudacao(session)
@@ -165,10 +178,15 @@ class MessageProcessor:
             self.session_manager.save_session(session, reason='cancelled')
             return self.smart_response.build_cancelado()
 
+        elif tipo == 'repetir_nota':
+            return self._handle_repetir_nota(session, usuario_empresa)
+
         elif tipo == 'pergunta':
-            # IA conversacional para perguntas
+            # IA conversacional para perguntas (com historico)
             session.increment_ai_calls()
-            return self.conversational_ai.respond(mensagem, session)
+            return self.conversational_ai.respond(
+                mensagem, session, empresa_id=session.empresa_id
+            )
 
         else:
             # tipo == 'dados' -> extracao focada
@@ -208,6 +226,28 @@ class MessageProcessor:
 
         logger.debug(f"[hybrid] Dados processados:\n{dados_finais.model_dump_json(indent=2)}")
 
+        # SUGESTAO DE DESCRICAO: se CNPJ validado e descricao faltando, sugerir do historico
+        if (
+            session.empresa_id
+            and dados_finais.cnpj.status == 'validated'
+            and dados_finais.descricao.status == 'null'
+        ):
+            try:
+                from apps.core.history.invoice_history import InvoiceHistoryService
+                sugestao = InvoiceHistoryService.get_descricao_sugerida(
+                    session.empresa_id, dados_finais.cnpj.cnpj
+                )
+                if sugestao:
+                    logger  .info(f"[hybrid] Sugestao de descricao encontrada: {sugestao[:50]}")
+                    session.pending_suggestion = {
+                        'tipo': 'descricao',
+                        'valor': sugestao,
+                    }
+                    session.update_estado(SessionState.DADOS_INCOMPLETOS.value)
+                    return self.smart_response.build_sugestao_descricao(dados_finais, sugestao)
+            except Exception as e:
+                logger.warning(f"[hybrid] Erro ao buscar sugestao: {e}")
+
         # GERAR RESPOSTA com SmartResponseBuilder
         if dados_finais.data_complete:
             logger.info("[hybrid] Dados completos - espelho", extra={'telefone': session.telefone})
@@ -216,6 +256,78 @@ class MessageProcessor:
         else:
             session.update_estado(SessionState.DADOS_INCOMPLETOS.value)
             logger.info("[hybrid] Dados incompletos", extra={'telefone': session.telefone})
+            return self.smart_response.build_smart_response(dados_finais)
+
+    # ==================== HANDLERS DE HISTORICO ====================
+
+    def _handle_repetir_nota(self, session: Session, usuario_empresa) -> str:
+        """Repete a ultima nota emitida pela empresa."""
+        empresa_id = session.empresa_id
+        if not empresa_id:
+            return "Nao consegui identificar sua empresa. Tente novamente."
+
+        try:
+            from apps.core.history.invoice_history import InvoiceHistoryService
+
+            emissao = InvoiceHistoryService.get_ultima_nota(empresa_id)
+            if not emissao:
+                logger.info("[hybrid] Nenhuma nota anterior encontrada", extra={'telefone': session.telefone})
+                return "Nao encontrei notas anteriores para sua empresa. Me passe os dados: CNPJ, valor e descricao."
+
+            # Converter emissao em DadosNFSe
+            dados = InvoiceHistoryService.dados_nfse_from_emissao(emissao)
+            session.update_invoice_data(dados)
+            session.update_estado(SessionState.AGUARDANDO_CONFIRMACAO.value)
+
+            razao_social = emissao.tomador.razao_social if emissao.tomador else "N/A"
+            logger.info(
+                f"[hybrid] Repetindo nota: {emissao.id_integracao} para {razao_social}",
+                extra={'telefone': session.telefone}
+            )
+
+            return self.smart_response.build_repetir_nota(
+                dados.to_dict(),
+                emissao.created_at,
+                razao_social,
+            )
+        except Exception as e:
+            logger.exception("[hybrid] Erro ao repetir nota")
+            return "Erro ao buscar nota anterior. Tente novamente."
+
+    def _aplicar_sugestao(self, session: Session) -> str:
+        """Aplica sugestao pendente (ex: descricao do historico)."""
+        sugestao = session.pending_suggestion
+        session.pending_suggestion = None
+
+        if not sugestao or sugestao.get('tipo') != 'descricao':
+            return self.smart_response.build_smart_response(session.invoice_data)
+
+        from apps.core.models import DescricaoExtraida, DadosNFSe
+
+        descricao_valor = sugestao['valor']
+        logger.info(f"[hybrid] Aplicando sugestao de descricao: {descricao_valor[:50]}")
+
+        # Criar descricao validada
+        nova_descricao = DescricaoExtraida(
+            descricao_extracted=descricao_valor,
+            descricao=descricao_valor,
+            status='validated',
+        )
+
+        # Reconstruir DadosNFSe com a descricao
+        dados_finais = DadosNFSe(
+            cnpj=session.invoice_data.cnpj,
+            valor=session.invoice_data.valor,
+            descricao=nova_descricao,
+        )
+
+        session.update_invoice_data(dados_finais)
+
+        if dados_finais.data_complete:
+            session.update_estado(SessionState.AGUARDANDO_CONFIRMACAO.value)
+            return self.smart_response.build_espelho(dados_finais.to_dict())
+        else:
+            session.update_estado(SessionState.DADOS_INCOMPLETOS.value)
             return self.smart_response.build_smart_response(dados_finais)
 
     # ==================== MODO LEGADO (ORIGINAL) ====================

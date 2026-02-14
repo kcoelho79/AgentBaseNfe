@@ -209,6 +209,57 @@ class SmartResponseBuilder(ResponseBuilder):
         # Fallback
         return "Para emitir a nota, preciso do CNPJ, valor e descricao do servico."
 
+    # --- Repetir nota ---
+
+    def build_repetir_nota(self, dados: dict, data_original, razao_social_tomador: str) -> str:
+        """
+        Espelho para nota repetida, com header indicando a origem.
+
+        Args:
+            dados: DadosNFSe.to_dict()
+            data_original: datetime da nota original
+            razao_social_tomador: Nome do tomador da nota original
+        """
+        if data_original:
+            data_str = data_original.strftime('%d/%m/%Y')
+            header = f"*Repetindo nota de {data_str} para {razao_social_tomador}*\n\n"
+        else:
+            header = f"*Repetindo nota para {razao_social_tomador}*\n\n"
+
+        espelho = self.build_espelho(dados)
+        return header + espelho
+
+    # --- Sugestao de descricao ---
+
+    def build_sugestao_descricao(self, dados: 'DadosNFSe', sugestao: str) -> str:
+        """
+        Mostra dados confirmados + sugestao de descricao do historico.
+
+        Args:
+            dados: DadosNFSe com dados parciais
+            sugestao: Descricao sugerida do historico
+        """
+        parts = []
+
+        # Mostrar dados confirmados
+        if dados.cnpj.status == 'validated':
+            razao = dados.cnpj.razao_social or dados.cnpj.cnpj
+            parts.append(f"CNPJ: {razao}")
+        if dados.valor.status == 'validated':
+            parts.append(f"Valor: {dados.valor.valor_formatted}")
+
+        confirmados = "\n".join(f"- {p}" for p in parts)
+
+        # Truncar sugestao se muito longa
+        sugestao_display = sugestao if len(sugestao) <= 100 else sugestao[:97] + "..."
+
+        return (
+            f"{confirmados}\n\n"
+            f"Da ultima vez para esse cliente voce usou:\n"
+            f"_{sugestao_display}_\n\n"
+            f"Quer usar a mesma descricao? (*sim* ou informe uma nova)"
+        )
+
     # --- Helpers ---
 
     def _formatar_campos(self, campos: list) -> str:

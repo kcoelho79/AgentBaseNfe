@@ -241,6 +241,10 @@ class NFSeEmissao(models.Model):
         verbose_name = 'Emissão NFSe'
         verbose_name_plural = 'Emissões NFSe'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['prestador', '-created_at'], name='idx_emissao_prestador_data'),
+            models.Index(fields=['prestador', 'tomador', '-created_at'], name='idx_emissao_prest_tom_data'),
+        ]
     
     def __str__(self):
         return f"{self.id_integracao} - {self.get_status_display()}"

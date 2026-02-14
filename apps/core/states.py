@@ -110,6 +110,7 @@ VALID_TRANSITIONS = {
     SessionState.DADOS_INCOMPLETOS: {
         SessionState.DADOS_INCOMPLETOS,  # loop: ainda falta dados
         SessionState.AGUARDANDO_CONFIRMACAO,
+        SessionState.CANCELADO_USUARIO,
         SessionState.EXPIRADO,
     },
     SessionState.AGUARDANDO_CONFIRMACAO: {

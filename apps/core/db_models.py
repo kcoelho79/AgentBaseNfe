@@ -54,6 +54,13 @@ class SessionSnapshot(models.Model):
         verbose_name='ID da Empresa'
     )
 
+    # Sugestao pendente (historico)
+    pending_suggestion = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name='Sugestao Pendente'
+    )
+
     # Estado da sessão
     estado = models.CharField(
         max_length=25,
@@ -285,11 +292,12 @@ class SessionSnapshot(models.Model):
         # Extrai contexto do usuário se fornecido
         usuario_nome = None
         empresa_nome = None
-        empresa_id = None
+        empresa_id = session.empresa_id  # Priorizar empresa_id da sessao Pydantic
         if usuario_context:
             usuario_nome = usuario_context.get('nome')
             empresa_nome = usuario_context.get('empresa_nome')
-            empresa_id = usuario_context.get('empresa_id')
+            if not empresa_id:
+                empresa_id = usuario_context.get('empresa_id')
 
         return cls(
             sessao_id=session.sessao_id,
@@ -297,6 +305,7 @@ class SessionSnapshot(models.Model):
             usuario_nome=usuario_nome,
             empresa_nome=empresa_nome,
             empresa_id=empresa_id,
+            pending_suggestion=session.pending_suggestion,
             estado=session.estado,
             # CNPJ
             cnpj_status=invoice.cnpj.status,
@@ -389,6 +398,8 @@ class SessionSnapshot(models.Model):
         return Session(
             sessao_id=self.sessao_id,
             telefone=self.telefone,
+            empresa_id=self.empresa_id,
+            pending_suggestion=self.pending_suggestion,
             estado=self.estado,
             invoice_data=invoice_data,
             interaction_count=self.interaction_count,
@@ -421,6 +432,9 @@ class SessionSnapshot(models.Model):
         invoice = session.invoice_data
 
         self.estado = session.estado
+        self.pending_suggestion = session.pending_suggestion
+        if session.empresa_id:
+            self.empresa_id = session.empresa_id
         # CNPJ
         self.cnpj_status = invoice.cnpj.status
         self.cnpj_extracted = invoice.cnpj.cnpj_extracted

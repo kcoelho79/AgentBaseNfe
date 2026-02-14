@@ -46,6 +46,7 @@ class ConversationalAI:
         self,
         pergunta: str,
         session: Optional[Session] = None,
+        empresa_id: Optional[int] = None,
     ) -> str:
         """
         Responde uma pergunta do usuario usando a knowledge base.
@@ -53,6 +54,7 @@ class ConversationalAI:
         Args:
             pergunta: Pergunta do usuario
             session: Sessao atual (para contexto de dados ja coletados)
+            empresa_id: ID da empresa para injetar historico de notas
 
         Returns:
             Resposta em texto natural
@@ -64,6 +66,26 @@ class ConversationalAI:
         if session and session.invoice_data:
             contexto = session.invoice_data.to_context()
 
+        # Injetar historico de notas se empresa_id disponivel
+        historico_contexto = ""
+        if empresa_id:
+            try:
+                from apps.core.history.invoice_history import InvoiceHistoryService
+                resumo = InvoiceHistoryService.get_resumo_mensal(empresa_id)
+                historico_texto = InvoiceHistoryService.get_contexto_historico(empresa_id)
+
+                partes = []
+                if resumo['total_notas'] > 0:
+                    valor_fmt = f"R$ {resumo['valor_total']:,.2f}".replace(',', '_').replace('.', ',').replace('_', '.')
+                    partes.append(f"- Este mes: {resumo['total_notas']} notas, total {valor_fmt}")
+                if historico_texto:
+                    partes.append(f"- {historico_texto}")
+
+                if partes:
+                    historico_contexto = "\nHISTORICO DE NOTAS DA EMPRESA:\n" + "\n".join(partes)
+            except Exception as e:
+                logger.warning(f"[hybrid] Erro ao buscar historico: {e}")
+
         # Montar mensagens
         messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
 
@@ -73,9 +95,15 @@ class ConversationalAI:
                 if msg.role in ('user', 'assistant'):
                     messages.append({"role": msg.role, "content": msg.content})
 
-        # Adicionar contexto se houver dados parciais
+        # Adicionar contexto se houver dados parciais ou historico
+        extra_contexto = ""
         if contexto:
-            user_content = f"{contexto}\n\nPERGUNTA DO USUARIO:\n{pergunta}"
+            extra_contexto += contexto
+        if historico_contexto:
+            extra_contexto += historico_contexto
+
+        if extra_contexto:
+            user_content = f"{extra_contexto}\n\nPERGUNTA DO USUARIO:\n{pergunta}"
         else:
             user_content = pergunta
 

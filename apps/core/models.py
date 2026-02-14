@@ -403,6 +403,10 @@ class Session(BaseModel):
     # Identificação
     sessao_id: str = Field(default_factory=lambda: f"{datetime.now().strftime('%d%m%y')}-{uuid4().hex[:4]}")
     telefone: str
+    empresa_id: Optional[int] = None
+
+    # Sugestao pendente (ex: descricao sugerida do historico)
+    pending_suggestion: Optional[dict] = None
     
     # Estado da máquina
     estado: Literal[

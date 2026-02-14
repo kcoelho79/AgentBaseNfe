@@ -4,7 +4,7 @@ from typing import Literal
 
 logger = logging.getLogger(__name__)
 
-MessageType = Literal['saudacao', 'agradecimento', 'pergunta', 'cancelamento', 'dados']
+MessageType = Literal['saudacao', 'agradecimento', 'pergunta', 'cancelamento', 'repetir_nota', 'dados']
 
 
 class MessageClassifier:
@@ -12,7 +12,7 @@ class MessageClassifier:
     Classifica mensagens para roteamento sem usar IA.
 
     Decide se a mensagem e saudacao, agradecimento, pergunta pura,
-    cancelamento ou contem dados para extracao.
+    cancelamento, repetir nota ou contem dados para extracao.
 
     Regra: se a mensagem contem numeros, provavelmente tem dados
     (CNPJ, valor) e deve ir para extracao mesmo que tenha pergunta.
@@ -40,6 +40,14 @@ class MessageClassifier:
         'funciona', 'faz', 'aceita', 'serve',
     }
 
+    REPETIR_NOTA_PATTERNS = [
+        r'repet\w*\s+(?:a\s+)?(?:ultima|última)\s+nota',
+        r'(?:igual|mesma)\s+(?:a[o]?\s+)?(?:ultima|última)',
+        r'emitir\s+(?:igual|mesma|de\s+novo|novamente)',
+        r'(?:ultima|última)\s+nota\s+(?:de\s+novo|novamente|outra\s+vez)',
+        r'(?:mesma|igual)\s+nota',
+    ]
+
     @classmethod
     def classify(cls, mensagem: str) -> MessageType:
         """
@@ -50,11 +58,17 @@ class MessageClassifier:
 
         Returns:
             Tipo da mensagem: 'saudacao', 'agradecimento', 'pergunta',
-                              'cancelamento' ou 'dados'
+                              'cancelamento', 'repetir_nota' ou 'dados'
         """
         msg = mensagem.strip().lower()
         msg_clean = re.sub(r'[^\w\s]', '', msg)
         words = msg_clean.split()
+
+        # Repetir nota (verificar antes de numeros, pois nao tem dados)
+        if cls._is_repetir_nota(msg, msg_clean):
+            logger.debug(f"Classificado como 'repetir_nota': {msg[:50]}")
+            return 'repetir_nota'
+
         tem_numeros = bool(re.search(r'\d{2,}', msg))
 
         # Se tem numeros, provavelmente contem dados (CNPJ, valor)
@@ -86,6 +100,16 @@ class MessageClassifier:
         # Default: assume que contem dados para extracao
         logger.debug(f"Classificado como 'dados' (default): {msg[:50]}")
         return 'dados'
+
+    @classmethod
+    def _is_repetir_nota(cls, msg: str, msg_clean: str) -> bool:
+        """Verifica se o usuario quer repetir a ultima nota."""
+        for pattern in cls.REPETIR_NOTA_PATTERNS:
+            if re.search(pattern, msg):
+                return True
+            if re.search(pattern, msg_clean):
+                return True
+        return False
 
     @classmethod
     def _is_saudacao(cls, msg_clean: str, words: list) -> bool:
